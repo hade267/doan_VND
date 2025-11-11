@@ -11,12 +11,13 @@ router.use(protect);
 // POST /api/budgets
 router.post(
   '/',
-  validate([
+  [
     body('category_id').isUUID().withMessage('Valid category ID is required'),
     body('amount_limit').isDecimal({ decimal_digits: '2' }).withMessage('Amount limit must be a decimal'),
     body('period').isIn(['daily', 'weekly', 'monthly', 'yearly']).withMessage('Invalid period'),
     body('start_date').isISO8601().withMessage('Invalid start date'),
-  ]),
+  ],
+  validate,
   budgetController.createBudget
 );
 
@@ -26,24 +27,27 @@ router.get('/', budgetController.getUserBudgets);
 // GET /api/budgets/:id
 router.get(
   '/:id',
-  validate([param('id').isUUID()]),
+  [param('id').isUUID()],
+  validate,
   budgetController.getBudgetById
 );
 
 // PUT /api/budgets/:id
 router.put(
   '/:id',
-  validate([
+  [
     param('id').isUUID(),
     body('amount_limit').optional().isDecimal(),
-  ]),
+  ],
+  validate,
   budgetController.updateBudget
 );
 
 // DELETE /api/budgets/:id
 router.delete(
   '/:id',
-  validate([param('id').isUUID()]),
+  [param('id').isUUID()],
+  validate,
   budgetController.deleteBudget
 );
 

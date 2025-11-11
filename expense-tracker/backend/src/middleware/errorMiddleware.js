@@ -1,11 +1,20 @@
 const errorHandler = (err, req, res, next) => {
-  // Ghi lại lỗi ra console để debug
-  console.error(err.stack);
+  if (res.headersSent) {
+    return next(err);
+  }
 
-  // Trả về một phản hồi 500 (Internal Server Error) chung
-  // để tránh rò rỉ chi tiết lỗi cho người dùng
-  res.status(500).json({
-    message: 'Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau.',
+  const statusCode = err.statusCode || err.status || 500;
+  const message =
+    err.message || 'Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau.';
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (!isProduction) {
+    console.error(err);
+  }
+
+  res.status(statusCode).json({
+    message,
+    ...(isProduction ? {} : { stack: err.stack }),
   });
 };
 

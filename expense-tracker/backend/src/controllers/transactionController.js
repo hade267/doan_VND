@@ -1,5 +1,6 @@
-const { Transaction, Category } = require('../models');
+const { Transaction, Category, NlpLog } = require('../models');
 const { Op } = require('sequelize');
+const { parseNaturalLanguage } = require('../utils/nlp');
 
 const transactionController = {
   // Create a new transaction
@@ -32,6 +33,73 @@ const transactionController = {
       res.status(201).json(newTransaction);
     } catch (error) {
       res.status(500).json({ message: 'Error creating transaction.', error: error.message });
+    }
+  },
+
+  async createTransactionFromNLP(req, res) {
+    const userId = req.user.id;
+    const { text } = req.body;
+
+    if (!text || text.trim().length < 3) {
+      console.log('[NLP] Invalid text input', { userId, text });
+      return res.status(400).json({ message: 'Please provide a valid sentence.' });
+    }
+
+    try {
+      console.log('[NLP] Parsing text', { userId, text });
+      const parsed = parseNaturalLanguage(text);
+
+      if (!parsed.amount || Number.isNaN(parsed.amount)) {
+        console.log('[NLP] Missing amount detected', { userId, parsed });
+        return res.status(400).json({ message: 'Could not detect amount from sentence.' });
+      }
+
+      let category = await Category.findOne({
+        where: { user_id: userId, name: parsed.category, type: parsed.type },
+      });
+
+      if (!category) {
+        category = await Category.create({
+          user_id: userId,
+          name: parsed.category,
+          type: parsed.type,
+          icon: '📝',
+          color: '#9CA3AF',
+          is_default: false,
+        });
+      }
+
+      const transaction = await Transaction.create({
+        user_id: userId,
+        category_id: category.id,
+        amount: parsed.amount,
+        type: parsed.type,
+        description: parsed.description,
+        transaction_date: new Date(parsed.date),
+      });
+
+      await NlpLog.create({
+        user_id: userId,
+        input_text: text,
+        parsed_json: parsed,
+        is_success: true,
+      });
+
+      console.log('[NLP] Transaction created successfully', {
+        userId,
+        transactionId: transaction.id,
+        parsed,
+      });
+      res.status(201).json(transaction);
+    } catch (error) {
+      console.error('[NLP] Failed to process text', { userId, text, error: error.message });
+      await NlpLog.create({
+        user_id: userId,
+        input_text: text,
+        parsed_json: { error: error.message },
+        is_success: false,
+      }).catch(() => {});
+      res.status(500).json({ message: 'Error parsing natural language input.', error: error.message });
     }
   },
 

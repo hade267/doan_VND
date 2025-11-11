@@ -1,27 +1,35 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-const sequelize = new Sequelize({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
-  username: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+const commonOptions = {
   dialect: 'postgres',
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
   pool: {
     max: 5,
     min: 0,
     acquire: 30000,
-    idle: 10000
+    idle: 10000,
   },
   define: {
     timestamps: true,
     underscored: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
-  }
-});
+    updatedAt: 'updated_at',
+  },
+};
+
+const sequelize = process.env.DATABASE_URL
+  ? new Sequelize(process.env.DATABASE_URL, commonOptions)
+  : new Sequelize(
+      {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT,
+        database: process.env.DB_NAME,
+        username: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        ...commonOptions,
+      },
+    );
 
 const testConnection = async () => {
   // Tiếp tục backend/src/config/database.js
