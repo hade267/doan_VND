@@ -3,44 +3,62 @@ const User = require('./user');
 const Category = require('./category');
 const Transaction = require('./transaction');
 const Budget = require('./budget');
+const DefaultCategory = require('./defaultCategory'); // Thêm dòng này
 
-// User associations
-User.hasMany(Category, { foreignKey: 'user_id', as: 'categories' });
-User.hasMany(Transaction, { foreignKey: 'user_id', as: 'transactions' });
-User.hasMany(Budget, { foreignKey: 'user_id', as: 'budgets' });
+// Định nghĩa các mối quan hệ (associations)
 
-// Category associations
-Category.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
-Category.hasMany(Transaction, { foreignKey: 'category_id', as: 'transactions' });
-Category.hasMany(Budget, { foreignKey: 'category_id', as: 'budgets' });
+// User -> Category (One-to-Many)
+User.hasMany(Category, { 
+  foreignKey: 'user_id', 
+  onDelete: 'CASCADE' 
+});
+Category.belongsTo(User, { 
+  foreignKey: 'user_id' 
+});
 
-// Transaction associations
-Transaction.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
-Transaction.belongsTo(Category, { foreignKey: 'category_id', as: 'category' });
+// User -> Transaction (One-to-Many)
+User.hasMany(Transaction, { 
+  foreignKey: 'user_id', 
+  onDelete: 'CASCADE' 
+});
+Transaction.belongsTo(User, { 
+  foreignKey: 'user_id' 
+});
 
-// Budget associations
-Budget.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
-Budget.belongsTo(Category, { foreignKey: 'category_id', as: 'category' });
+// Category -> Transaction (One-to-Many)
+Category.hasMany(Transaction, { 
+  foreignKey: 'category_id', 
+  onDelete: 'SET NULL' 
+});
+Transaction.belongsTo(Category, { 
+  foreignKey: 'category_id' 
+});
 
-const db = {
+// User -> Budget (One-to-Many)
+User.hasMany(Budget, { 
+  foreignKey: 'user_id', 
+  onDelete: 'CASCADE' 
+});
+Budget.belongsTo(User, { 
+  foreignKey: 'user_id' 
+});
+
+// Category -> Budget (One-to-Many)
+Category.hasMany(Budget, { 
+  foreignKey: 'category_id', 
+  onDelete: 'CASCADE' 
+});
+Budget.belongsTo(Category, { 
+  foreignKey: 'category_id' 
+});
+
+
+// Xuất tất cả models và sequelize instance
+module.exports = {
   sequelize,
   User,
   Category,
   Transaction,
   Budget,
+  DefaultCategory, // Thêm dòng này
 };
-
-// Function to sync all models
-db.syncModels = async () => {
-  try {
-    // In development, you might want to use { force: true } or { alter: true }
-    // Be careful with this in production!
-    await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
-    console.log('✅ All models were synchronized successfully.');
-  } catch (error) {
-    console.error('❌ Unable to synchronize models with the database:', error);
-    process.exit(1);
-  }
-};
-
-module.exports = db;

@@ -1,49 +1,35 @@
 const express = require('express');
-const categoryController = require('../controllers/categoryController');
-const { protect } = require('../middleware/authMiddleware');
-const { validate } = require('../middleware/validation');
-const { body, param } = require('express-validator');
-
 const router = express.Router();
+const categoryController = require('../controllers/categoryController');
+// Lấy thêm categoryRules từ validation
+const { validate, categoryRules } = require('../middleware/validation');
+const { authMiddleware } = require('../middleware/authMiddleware');
 
-// All routes are protected
-router.use(protect);
+// GET /api/categories (Lấy tất cả danh mục của người dùng)
+router.get('/', authMiddleware, categoryController.getAllCategories);
 
-// POST /api/categories - Create a new category
+// GET /api/categories/:id (Lấy 1 danh mục)
+router.get('/:id', authMiddleware, categoryController.getCategoryById);
+
+// POST /api/categories (Tạo danh mục mới)
 router.post(
   '/',
-  validate([
-    body('name').notEmpty().withMessage('Category name is required'),
-    body('type').isIn(['income', 'expense']).withMessage('Type must be either "income" or "expense"'),
-  ]),
+  authMiddleware,
+  categoryRules(), // 1. Chạy các quy tắc
+  validate,        // 2. Kiểm tra kết quả
   categoryController.createCategory
 );
 
-// GET /api/categories - Get all categories for the user
-router.get('/', categoryController.getUserCategories);
-
-// GET /api/categories/:id - Get a single category
-router.get(
-  '/:id',
-  validate([param('id').isUUID().withMessage('Invalid category ID')]),
-  categoryController.getCategoryById
-);
-
-// PUT /api/categories/:id - Update a category
+// PUT /api/categories/:id (Cập nhật danh mục)
 router.put(
   '/:id',
-  validate([
-    param('id').isUUID().withMessage('Invalid category ID'),
-    body('name').notEmpty().withMessage('Category name is required'),
-  ]),
+  authMiddleware,
+  categoryRules(), // Sử dụng lại quy tắc
+  validate,        
   categoryController.updateCategory
 );
 
-// DELETE /api/categories/:id - Delete a category
-router.delete(
-  '/:id',
-  validate([param('id').isUUID().withMessage('Invalid category ID')]),
-  categoryController.deleteCategory
-);
+// DELETE /api/categories/:id (Xóa danh mục)
+router.delete('/:id', authMiddleware, categoryController.deleteCategory);
 
 module.exports = router;

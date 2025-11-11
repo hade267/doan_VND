@@ -4,6 +4,9 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const { rateLimit } = require('express-rate-limit');
 
+// Import middleware xử lý lỗi (Giả sử bạn đặt tên tệp là errorMiddleware.js)
+const errorHandler = require('./middleware/errorMiddleware');
+
 const app = express();
 
 // Middleware
@@ -44,5 +47,8 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/budgets', budgetRoutes);
 
+// SỬ DỤNG MIDDLEWARE XỬ LÝ LỖI (Phải ở CUỐI CÙNG)
+// Sau tất cả các app.use() và routes
+app.use(errorHandler);
 
 module.exports = app;
