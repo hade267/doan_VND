@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { CheckIcon } from '../components/icons';
+
+const loginFeatures = [
+  'Đồng bộ giao dịch tức thì',
+  'Báo cáo trực quan, dễ hiểu',
+  'Nhập giao dịch bằng ngôn ngữ tự nhiên',
+];
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -27,14 +34,19 @@ const LoginPage = () => {
         <h1>Quản lý tài chính thông minh</h1>
         <p>Ghi lại chi tiêu, lập ngân sách và xem báo cáo trực quan mọi lúc mọi nơi.</p>
         <ul className="auth__hero-list">
-          <li>💳 Đồng bộ giao dịch tức thì</li>
-          <li>📊 Báo cáo trực quan, dễ hiểu</li>
-          <li>🤖 Nhập giao dịch bằng ngôn ngữ tự nhiên</li>
+          {loginFeatures.map((feature) => (
+            <li key={feature}>
+              <span className="icon-badge icon-badge--ghost" aria-hidden="true">
+                <CheckIcon size={16} />
+              </span>
+              <span>{feature}</span>
+            </li>
+          ))}
         </ul>
       </div>
       <div className="auth__card">
         <div className="auth__panel">
-          <h2>Xin chào 👋</h2>
+          <h2>Xin chào</h2>
           <p>Đăng nhập để tiếp tục quản lý chi tiêu</p>
           {error && <p className="error-text">{error}</p>}
           <form onSubmit={handleSubmit}>

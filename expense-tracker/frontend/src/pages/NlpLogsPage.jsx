@@ -17,6 +17,9 @@ const NlpLogsPage = () => {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [modalLog, setModalLog] = useState(null);
+  const [corrections, setCorrections] = useState({ category: '', amount: '', description: '' });
+  const [feedbackText, setFeedbackText] = useState('');
 
   const loadLogs = async () => {
     setLoading(true);
@@ -59,6 +62,45 @@ const NlpLogsPage = () => {
       await reapplyLog(log.id, log.corrections || {});
       await updateLog(log.id, { feedback: 'Re-applied', is_success: true });
       loadLogs();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể reapply log.');
+    }
+  };
+
+  const openModal = (log) => {
+    const base = log.corrections || log.parsed_json || {};
+    setCorrections({
+      category: base.category || '',
+      amount: base.amount || '',
+      description: base.description || '',
+    });
+    setFeedbackText(log.feedback || '');
+    setModalLog(log);
+  };
+
+  const closeModal = () => setModalLog(null);
+
+  const saveCorrections = async () => {
+    if (!modalLog) return;
+    try {
+      await updateLog(modalLog.id, {
+        corrections: corrections,
+        feedback: feedbackText,
+      });
+      loadLogs();
+      closeModal();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể lưu chỉnh sửa.');
+    }
+  };
+
+  const reapplyFromModal = async () => {
+    if (!modalLog) return;
+    try {
+      await reapplyLog(modalLog.id, corrections);
+      await updateLog(modalLog.id, { feedback: feedbackText, is_success: true, corrections });
+      loadLogs();
+      closeModal();
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể reapply log.');
     }
@@ -137,6 +179,9 @@ const NlpLogsPage = () => {
                     </span>
                   </td>
                   <td className="nlp-logs__actions">
+                    <button className="button button--ghost" onClick={() => openModal(log)}>
+                      Chi tiết
+                    </button>
                     <button className="button button--ghost" onClick={() => toggleSuccess(log)}>
                       {log.is_success ? 'Đánh dấu lỗi' : 'Đánh dấu đúng'}
                     </button>
@@ -151,6 +196,55 @@ const NlpLogsPage = () => {
           {!logs.length && !loading && <p>Chưa có dữ liệu.</p>}
         </div>
       </div>
+
+      {modalLog && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal__header">
+              <h3>Chỉnh sửa NLP Log</h3>
+              <button className="icon-button" onClick={closeModal}>
+                ✕
+              </button>
+            </div>
+            <div className="modal__body">
+              <div className="auth__form-group">
+                <label>Danh mục</label>
+                <input
+                  value={corrections.category}
+                  onChange={(e) => setCorrections((prev) => ({ ...prev, category: e.target.value }))}
+                />
+              </div>
+              <div className="auth__form-group">
+                <label>Số tiền</label>
+                <input
+                  type="number"
+                  value={corrections.amount}
+                  onChange={(e) => setCorrections((prev) => ({ ...prev, amount: Number(e.target.value) }))}
+                />
+              </div>
+              <div className="auth__form-group">
+                <label>Mô tả</label>
+                <input
+                  value={corrections.description}
+                  onChange={(e) => setCorrections((prev) => ({ ...prev, description: e.target.value }))}
+                />
+              </div>
+              <div className="auth__form-group">
+                <label>Feedback</label>
+                <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} rows={3} />
+              </div>
+            </div>
+            <div className="modal__footer">
+              <button className="button button--ghost" onClick={saveCorrections}>
+                Lưu chỉnh sửa
+              </button>
+              <button className="button" onClick={reapplyFromModal}>
+                Re-apply với chỉnh sửa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

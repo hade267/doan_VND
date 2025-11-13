@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import TransactionList from '../components/TransactionList';
 import ChartSummary from '../components/ChartSummary';
+import { TrendDownIcon, TrendUpIcon, WalletIcon } from '../components/icons';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -70,21 +71,27 @@ const DashboardPage = () => {
       <div className="quick-cards">
         <div className="quick-card">
           <small>Số dư khả dụng</small>
-          <div className="icon-badge">💼</div>
+          <div className="icon-badge">
+            <WalletIcon size={18} />
+          </div>
           <strong>
             {(summary?.balance ?? 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
           </strong>
         </div>
         <div className="quick-card">
           <small>Thu nhập tháng</small>
-          <div className="icon-badge">📈</div>
+          <div className="icon-badge">
+            <TrendUpIcon size={18} />
+          </div>
           <strong>
             {(summary?.totalIncome ?? 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
           </strong>
         </div>
         <div className="quick-card">
           <small>Chi tiêu tháng</small>
-          <div className="icon-badge">📉</div>
+          <div className="icon-badge">
+            <TrendDownIcon size={18} />
+          </div>
           <strong>
             {(summary?.totalExpense ?? 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
           </strong>

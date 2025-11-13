@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import NlpLogsPage from './pages/NlpLogsPage';
+import SettingsPage from './pages/SettingsPage';
 import AppLayout from './components/AppLayout';
 
 const NotFoundPage = () => <h1>404 Not Found</h1>;
@@ -33,6 +34,7 @@ function AppRoutes() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={withLayout(DashboardPage)} />
         <Route path="/nlp-logs" element={withLayout(NlpLogsPage)} />
+        <Route path="/settings" element={withLayout(SettingsPage)} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
   )

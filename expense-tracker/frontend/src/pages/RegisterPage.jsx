@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { CheckIcon } from '../components/icons';
+
+const registerFeatures = [
+  'Theo dõi nhiều ví cùng lúc',
+  'Kế hoạch tiết kiệm rõ ràng',
+  'Nhắc nhở khi vượt ngân sách',
+];
 
 const RegisterPage = () => {
   const [username, setUsername] = useState('');
@@ -29,9 +36,14 @@ const RegisterPage = () => {
         <h1>Bắt đầu hành trình tiết kiệm</h1>
         <p>Thiết lập ví, mục tiêu và để MoneyWave nhắc bạn mỗi khi chi tiêu gần chạm ngưỡng.</p>
         <ul className="auth__hero-list">
-          <li>🧾 Theo dõi nhiều ví cùng lúc</li>
-          <li>📈 Kế hoạch tiết kiệm rõ ràng</li>
-          <li>🔔 Nhắc nhở khi vượt ngân sách</li>
+          {registerFeatures.map((feature) => (
+            <li key={feature}>
+              <span className="icon-badge icon-badge--ghost" aria-hidden="true">
+                <CheckIcon size={16} />
+              </span>
+              <span>{feature}</span>
+            </li>
+          ))}
         </ul>
       </div>
       <div className="auth__card">
