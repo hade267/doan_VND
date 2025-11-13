@@ -1,5 +1,5 @@
 const express = require('express');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, authorize } = require('../middleware/authMiddleware');
 const { validate } = require('../middleware/validation');
 const { body, param, query } = require('express-validator');
 const nlpController = require('../controllers/nlpController');
@@ -10,12 +10,14 @@ router.use(protect);
 
 router.get(
   '/logs',
+  authorize('admin'),
   [query('status').optional().isIn(['success', 'failed'])],
   nlpController.listLogs
 );
 
 router.patch(
   '/logs/:id',
+  authorize('admin'),
   [
     param('id').isUUID(),
     body('is_success').optional().isBoolean(),
@@ -28,14 +30,16 @@ router.patch(
 
 router.post(
   '/logs/:id/reapply',
+  authorize('admin'),
   [param('id').isUUID()],
   validate,
   nlpController.reapplyLog
 );
 
-router.get('/config', nlpController.getConfig);
+router.get('/config', authorize('admin'), nlpController.getConfig);
 router.put(
   '/config',
+  authorize('admin'),
   [
     body('incomeKeywords').optional().isArray(),
     body('expenseKeywords').optional().isArray(),
@@ -50,6 +54,13 @@ router.post(
   [body('text').isString().isLength({ min: 3 })],
   validate,
   nlpController.quickParse
+);
+
+router.post(
+  '/ask',
+  [body('text').isString().isLength({ min: 3 })],
+  validate,
+  nlpController.askSummary
 );
 
 module.exports = router;

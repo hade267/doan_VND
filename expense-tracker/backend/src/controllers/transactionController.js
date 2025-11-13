@@ -1,8 +1,7 @@
 const { Transaction, Category, NlpLog } = require('../models');
 const { Op } = require('sequelize');
-const { parseWithGemini } = require('../utils/ai/geminiClient');
-const { getCachedResult, setCachedResult } = require('../utils/ai/cache');
-const { enforceDailyAiLimit } = require('../utils/ai/aiUsage');
+const { getBudgetAlerts } = require('../utils/budget');
+const { parseNaturalLanguage } = require('../utils/nlp');
 
 const transactionController = {
   // Create a new transaction
@@ -32,7 +31,17 @@ const transactionController = {
         transaction_date,
       });
 
-      res.status(201).json(newTransaction);
+      const budgetAlerts =
+        type === 'expense'
+          ? await getBudgetAlerts({
+              userId,
+              categoryId: category_id,
+              amount,
+              transactionDate: transaction_date,
+            })
+          : [];
+
+      res.status(201).json({ transaction: newTransaction, budgetAlerts });
     } catch (error) {
       res.status(500).json({ message: 'Error creating transaction.', error: error.message });
     }
@@ -40,7 +49,7 @@ const transactionController = {
 
   async createTransactionFromNLP(req, res) {
     const userId = req.user.id;
-    const { text, overrides = {} } = req.body;
+    const { text, overrides = {}, confirm = false } = req.body;
 
     if (!text || text.trim().length < 3) {
       console.log('[NLP] Invalid text input', { userId, text });
@@ -50,31 +59,35 @@ const transactionController = {
     try {
       console.log('[NLP] Parsing text', { userId, text });
 
+      const parsed = parseNaturalLanguage(text);
+      const engine = 'rules';
+      const confidenceValues =
+        typeof parsed.confidence === 'number'
+          ? [parsed.confidence]
+          : Object.values(parsed.confidence || {});
+      const confidenceScore =
+        confidenceValues.length > 0
+          ? confidenceValues.reduce((sum, value) => sum + Number(value || 0), 0) /
+            confidenceValues.length
+          : 0.6;
       const meta = {
-        ai: null,
+        ai: confidenceScore,
         cached: false,
       };
-
-      if (!process.env.GEMINI_API_KEY) {
-        return res.status(500).json({ message: 'GEMINI_API_KEY is not configured.' });
-      }
-
-      let parsed = getCachedResult(userId, text);
-      if (parsed) {
-        meta.cached = true;
-      } else {
-        await enforceDailyAiLimit(userId);
-        parsed = await parseWithGemini(text);
-        setCachedResult(userId, text, parsed);
-      }
-
-      meta.ai = parsed.confidence || 0.8;
-      const engine = 'gemini';
 
       const finalData = {
         ...parsed,
         ...overrides,
       };
+
+      if (!confirm) {
+        return res.status(200).json({
+          requiresConfirmation: true,
+          parsed: finalData,
+          meta,
+          message: 'Xác nhận dữ liệu trước khi lưu giao dịch.',
+        });
+      }
 
       if (!finalData.amount || Number.isNaN(finalData.amount)) {
         console.log('[NLP] Missing amount detected', { userId, parsed, overrides });
@@ -107,7 +120,7 @@ const transactionController = {
         amount: finalData.amount,
         type: finalData.type,
         description: finalData.description,
-        transaction_date: new Date(finalData.date),
+        transaction_date: new Date(finalData.date || finalData.transaction_date || Date.now()),
       });
 
       await NlpLog.create({
@@ -118,16 +131,26 @@ const transactionController = {
         transaction_id: transaction.id,
         is_success: true,
         engine,
-        confidence: parsed.confidence || 0,
+        confidence: confidenceScore,
         meta,
       });
 
-      console.log('[NLP] Transaction created successfully', {
-        userId,
-        transactionId: transaction.id,
-        parsed,
-      });
-      res.status(201).json(transaction);
+      const budgetAlerts =
+        transaction.type === 'expense'
+          ? await getBudgetAlerts({
+              userId,
+              categoryId: transaction.category_id,
+              amount: transaction.amount,
+              transactionDate: transaction.transaction_date,
+            })
+          : [];
+
+        console.log('[NLP] Transaction created successfully', {
+          userId,
+          transactionId: transaction.id,
+          parsed,
+        });
+        res.status(201).json({ transaction, budgetAlerts });
     } catch (error) {
       console.error('[NLP] Failed to process text', { userId, text, error: error.message });
       await NlpLog.create({
@@ -135,7 +158,7 @@ const transactionController = {
         input_text: text,
         parsed_json: { error: error.message },
         corrections: overrides,
-        engine: 'gemini',
+        engine: 'rules',
         is_success: false,
       }).catch(() => {});
       res.status(500).json({ message: 'Error parsing natural language input.', error: error.message });

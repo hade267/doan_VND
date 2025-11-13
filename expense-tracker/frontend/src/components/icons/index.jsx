@@ -103,6 +103,13 @@ export const SidebarToggleIcon = (props) => (
   </SvgIcon>
 );
 
+export const ShieldIcon = (props) => (
+  <SvgIcon {...props}>
+    <path d="M12 21.5s8-3 8-10.5V6.6a1 1 0 0 0-.67-.94l-7-2.6a1 1 0 0 0-.66 0l-7 2.6A1 1 0 0 0 4 6.6V11c0 7.5 8 10.5 8 10.5Z" />
+    <path d="M9.5 11.5l1.5 1.5 3.5-3.5" />
+  </SvgIcon>
+);
+
 export const ReceiptIcon = (props) => (
   <SvgIcon {...props}>
     <path d="M7 3.5 9 5l2-1.5 2 1.5 2-1.5 2 1.5v15l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5z" />

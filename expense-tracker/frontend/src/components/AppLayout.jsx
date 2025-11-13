@@ -1,6 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BrainIcon, DashboardIcon, LogoutIcon, MoonIcon, SettingsIcon, SidebarToggleIcon, SunIcon } from './icons';
+import { useAuth } from '../context/AuthContext';
+import {
+  BrainIcon,
+  DashboardIcon,
+  LogoutIcon,
+  MoonIcon,
+  SettingsIcon,
+  ShieldIcon,
+  SidebarToggleIcon,
+  SunIcon,
+} from './icons';
 
 const getIsMobile = () => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false);
 
@@ -11,14 +21,9 @@ const getInitialCollapse = () => {
   return getIsMobile();
 };
 
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
-  { to: '/nlp-logs', label: 'NLP Logs', icon: BrainIcon },
-  { to: '/settings', label: 'Cài đặt', icon: SettingsIcon },
-];
-
 const AppLayout = ({ children, onLogout }) => {
   const location = useLocation();
+  const { currentUser } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(getInitialCollapse);
   const [theme, setTheme] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('theme') || 'light' : 'light'));
   const [isMobile, setIsMobile] = useState(getIsMobile);
@@ -43,6 +48,18 @@ const AppLayout = ({ children, onLogout }) => {
       setIsCollapsed(false);
     }
   }, [isMobile, isCollapsed]);
+
+  const navItems = useMemo(() => {
+    const items = [{ to: '/dashboard', label: 'Dashboard', icon: DashboardIcon }];
+    if (currentUser?.role === 'admin') {
+      items.push(
+        { to: '/nlp-logs', label: 'NLP Logs', icon: BrainIcon },
+        { to: '/admin/users', label: 'Admin', icon: ShieldIcon },
+      );
+    }
+    items.push({ to: '/settings', label: 'Cài đặt', icon: SettingsIcon });
+    return items;
+  }, [currentUser]);
 
   const toggleTheme = () => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
 

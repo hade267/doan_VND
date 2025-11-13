@@ -11,3 +11,7 @@ export const reapplyLog = (id, overrides = {}) =>
 
 export const quickParse = (text) =>
   api.post('/nlp/parse', { text }).then((res) => res.data);
+
+export const fetchNlpConfig = () => api.get('/nlp/config').then((res) => res.data);
+
+export const updateNlpConfig = (payload) => api.put('/nlp/config', payload).then((res) => res.data);

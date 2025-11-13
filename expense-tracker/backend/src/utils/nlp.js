@@ -1,110 +1,235 @@
+const dayjs = require('dayjs');
 const { getNlpConfig } = require('./nlpConfig');
 
-const normalizeText = (text) =>
+const removeDiacritics = (text = '') =>
   text
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
 
-const detectType = (text, incomeKeywords = [], expenseKeywords = []) => {
-  const matchedIncome = incomeKeywords.filter((keyword) => text.includes(keyword));
-  const matchedExpense = expenseKeywords.filter((keyword) => text.includes(keyword));
+const normalizeText = (text = '') => removeDiacritics(text).toLowerCase();
 
-  if (matchedIncome.length === 0 && matchedExpense.length === 0) {
-    return { type: 'expense', confidence: 0.2 };
-  }
+const sanitizeForMatch = (text = '') =>
+  normalizeText(text)
+    .replace(/[^a-z0-9\s/:-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-  if (matchedIncome.length >= matchedExpense.length) {
-    return { type: 'income', confidence: Math.min(1, matchedIncome.length / 3) };
-  }
-
-  return { type: 'expense', confidence: Math.min(1, matchedExpense.length / 3) };
+const computeAverageConfidence = (values = []) => {
+  if (!values.length) return 0;
+  const sum = values.reduce((acc, value) => acc + Number(value || 0), 0);
+  return Math.max(0, Math.min(1, sum / values.length));
 };
 
 const amountRegexes = [
-  /(\d+[.,]?\d*)\s*(trieu|triệu)/,
-  /(\d+[.,]?\d*)\s*(nghin|ngan|ngàn|k)/,
-  /(\d+[.,]?\d*)\s*(vnd|đ|d)/,
-  /(\d+[.,]?\d*)/,
+  /(?:khoang|gan|hon)?\s*(\d+(?:[.,]\d+)?)(?:\s*)(trieu|tr|m|nghin|ngan|k|dong|d|vnd)?/gi,
+  /(\d{1,3}(?:[.,]\d{3})+)(?:\s*)(dong|d|vnd)?/gi,
+  /(\d+(?:[.,]\d+)?)(?=\s?vnd|\s?dong|\s?d\b)/gi,
 ];
 
-const extractAmount = (text) => {
-  for (const regex of amountRegexes) {
-    const match = text.match(regex);
-    if (match) {
-      const numeric = parseFloat(match[1].replace(',', '.'));
-      const unit = match[2] || '';
+const AMOUNT_MULTIPLIERS = {
+  trieu: 1_000_000,
+  tr: 1_000_000,
+  m: 1_000_000,
+  nghin: 1_000,
+  ngan: 1_000,
+  ngàn: 1_000,
+  k: 1_000,
+  dong: 1,
+  d: 1,
+  vnd: 1,
+};
 
-      if (/trieu|triệu/.test(unit)) {
-        return { amount: numeric * 1_000_000, confidence: 0.95 };
-      }
-      if (/nghin|ngan|ngàn|k/.test(unit)) {
-        return { amount: numeric * 1_000, confidence: 0.85 };
-      }
-      if (/vnd|đ|d/.test(unit) || unit === '') {
-        return { amount: numeric, confidence: 0.7 };
-      }
+const normalizeAmountValue = (value = '') => {
+  const sanitized = value.replace(/\./g, '').replace(',', '.');
+  return Number.parseFloat(sanitized);
+};
+
+const extractAmount = (text) => {
+  const normalized = normalizeText(text);
+  for (const regex of amountRegexes) {
+    const match = regex.exec(normalized);
+    if (!match) continue;
+    const rawNumber = match[1];
+    const unit = match[2] || '';
+    const baseValue = normalizeAmountValue(rawNumber);
+    if (Number.isNaN(baseValue) || baseValue <= 0) {
+      continue;
     }
+    const multiplier = AMOUNT_MULTIPLIERS[unit] || 1;
+    const amount = baseValue * multiplier;
+    const confidence = Math.min(
+      1,
+      0.6 + (unit ? 0.25 : 0) + (rawNumber.includes(',') || rawNumber.includes('.') ? 0.05 : 0),
+    );
+    return { amount, confidence };
   }
   return { amount: 0, confidence: 0 };
 };
 
 const extractCategory = (text, categories = []) => {
-  let bestMatch = { name: 'Khac', confidence: 0 };
+  const normalized = sanitizeForMatch(text);
+  const normalizeKeyword = (kw = '') => sanitizeForMatch(kw);
 
-  for (const category of categories) {
-    const matches = category.keywords?.filter((keyword) => text.includes(keyword)) || [];
-    if (matches.length > bestMatch.confidence) {
+  let bestMatch = {
+    name: 'Khac',
+    type: 'expense',
+    confidence: 0.1,
+  };
+
+  categories.forEach((category) => {
+    const keywords = category.keywords || [];
+    const hits = keywords.filter((keyword) => {
+      const normalizedKeyword = normalizeKeyword(keyword);
+      return normalizedKeyword && normalized.includes(normalizedKeyword);
+    });
+    if (!hits.length) {
+      return;
+    }
+    const precisionBoost = hits.some((kw) => kw.includes(' ')) ? 0.1 : 0;
+    const confidence = Math.min(1, 0.4 + hits.length * 0.2 + precisionBoost);
+    if (confidence > bestMatch.confidence) {
       bestMatch = {
         name: category.name,
-        confidence: Math.min(1, matches.length / 3),
+        type: category.type || 'expense',
+        confidence,
+        icon: category.icon,
+        color: category.color,
       };
     }
-  }
+  });
 
   return bestMatch;
 };
 
-const extractDate = (text) => {
-  const today = new Date();
-  const normalized = new Date(today);
-
-  if (text.includes('hom qua')) {
-    normalized.setDate(today.getDate() - 1);
-  } else if (text.includes('hom kia')) {
-    normalized.setDate(today.getDate() - 2);
-  } else if (text.includes('tu hom qua')) {
-    normalized.setDate(today.getDate() - 1);
-  }
-
-  return normalized;
+const TYPE_HINTS = {
+  income: ['thu ve', 'nhan duoc', 'cong no', 'thu tien', 'tien vao', 'ban duoc'],
+  expense: ['chi ra', 'chi phi', 'tra tien', 'mua', 'dat coc', 'dong tien'],
 };
 
-const parseNaturalLanguage = (text) => {
+const detectType = (text, config, categoryGuess) => {
+  const normalized = sanitizeForMatch(text);
+  const incomeHits = (config.incomeKeywords || []).filter((keyword) =>
+    normalized.includes(sanitizeForMatch(keyword)),
+  );
+  const expenseHits = (config.expenseKeywords || []).filter((keyword) =>
+    normalized.includes(sanitizeForMatch(keyword)),
+  );
+
+  let type = 'expense';
+  let confidence = 0.25;
+
+  if (incomeHits.length || expenseHits.length) {
+    if (incomeHits.length >= expenseHits.length) {
+      type = 'income';
+      confidence = Math.min(1, 0.4 + incomeHits.length * 0.2);
+    } else {
+      type = 'expense';
+      confidence = Math.min(1, 0.4 + expenseHits.length * 0.2);
+    }
+  }
+
+  TYPE_HINTS.income.forEach((hint) => {
+    if (normalized.includes(hint)) {
+      type = 'income';
+      confidence = Math.max(confidence, 0.65);
+    }
+  });
+  TYPE_HINTS.expense.forEach((hint) => {
+    if (normalized.includes(hint)) {
+      type = 'expense';
+      confidence = Math.max(confidence, 0.65);
+    }
+  });
+
+  if (categoryGuess?.confidence >= 0.4) {
+    type = categoryGuess.type || type;
+    confidence = Math.max(confidence, Math.min(1, 0.6 + categoryGuess.confidence / 2));
+  }
+
+  return { type, confidence };
+};
+
+const relativeDateKeywords = [
+  { keywords: ['hom nay', 'today'], days: 0, confidence: 0.7 },
+  { keywords: ['hom qua', 'toi qua', 'toi hom qua'], days: -1, confidence: 0.65 },
+  { keywords: ['hom kia'], days: -2, confidence: 0.6 },
+  { keywords: ['ngay mai', 'mai'], days: 1, confidence: 0.55 },
+  { keywords: ['tuan truoc'], days: -7, confidence: 0.5 },
+  { keywords: ['tuan nay', 'this week'], days: 0, confidence: 0.45 },
+  { keywords: ['thang truoc'], days: -30, confidence: 0.45 },
+  { keywords: ['thang nay'], days: 0, confidence: 0.4 },
+  { keywords: ['nam truoc'], days: -365, confidence: 0.4 },
+];
+
+const explicitDateRegex = /(?:ngay\s*)?(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/;
+
+const clampYear = (year) => {
+  if (year < 100) {
+    return 2000 + year;
+  }
+  return year;
+};
+
+const extractDate = (text) => {
+  const normalized = normalizeText(text);
+  const today = dayjs();
+
+  const explicitMatch = normalized.match(explicitDateRegex);
+  if (explicitMatch) {
+    const [, rawDay, rawMonth, rawYear] = explicitMatch;
+    const day = Number(rawDay);
+    const month = Number(rawMonth);
+    const year = rawYear ? clampYear(Number(rawYear)) : today.year();
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      let resolved = dayjs().year(year).month(month - 1).date(day);
+      if (!rawYear && resolved.isAfter(today.add(2, 'month'))) {
+        resolved = resolved.subtract(1, 'year');
+      }
+      return { value: resolved.format('YYYY-MM-DD'), confidence: 0.9 };
+    }
+  }
+
+  const keywordText = sanitizeForMatch(normalized);
+  for (const rule of relativeDateKeywords) {
+    if (rule.keywords.some((keyword) => keywordText.includes(keyword))) {
+      const resolved = today.add(rule.days, 'day');
+      return { value: resolved.format('YYYY-MM-DD'), confidence: rule.confidence };
+    }
+  }
+
+  return { value: today.format('YYYY-MM-DD'), confidence: 0.35 };
+};
+
+const parseNaturalLanguage = (text = '') => {
   const config = getNlpConfig();
-  const normalized = normalizeText(text || '');
-  const { type, confidence: typeConfidence } = detectType(
-    normalized,
-    config.incomeKeywords,
-    config.expenseKeywords
-  );
-  const { amount, confidence: amountConfidence } = extractAmount(normalized);
-  const { name: category, confidence: categoryConfidence } = extractCategory(
-    normalized,
-    config.categories
-  );
-  const date = extractDate(normalized);
+  const trimmedText = text.trim();
+  const categoryGuess = extractCategory(trimmedText, config.categories || []);
+  const typeData = detectType(trimmedText, config, categoryGuess);
+  const amountData = extractAmount(trimmedText);
+  const dateData = extractDate(trimmedText);
 
   return {
-    type,
-    amount,
-    category,
-    date: date.toISOString().split('T')[0],
-    description: text.trim(),
+    type: typeData.type,
+    amount: amountData.amount,
+    category: categoryGuess.name,
+    date: dateData.value,
+    description: trimmedText,
     confidence: {
-      type: typeConfidence,
-      amount: amountConfidence,
-      category: categoryConfidence,
+      type: typeData.confidence,
+      amount: amountData.confidence,
+      category: categoryGuess.confidence,
+      date: dateData.confidence,
+    },
+    metadata: {
+      categoryType: categoryGuess.type,
+      avgConfidence: computeAverageConfidence([
+        typeData.confidence,
+        amountData.confidence,
+        categoryGuess.confidence,
+        dateData.confidence,
+      ]),
     },
   };
 };

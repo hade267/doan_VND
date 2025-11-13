@@ -8,6 +8,8 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import NlpLogsPage from './pages/NlpLogsPage';
 import SettingsPage from './pages/SettingsPage';
+import AdminUsersPage from './pages/AdminUsersPage';
+import TransactionsPage from './pages/TransactionsPage';
 import AppLayout from './components/AppLayout';
 
 const NotFoundPage = () => <h1>404 Not Found</h1>;
@@ -16,6 +18,15 @@ const NotFoundPage = () => <h1>404 Not Found</h1>;
 function ProtectedRoute({ children }) {
   const { token } = useAuth();
   return token ? children : <Navigate to="/login" />;
+}
+
+function AdminRoute({ children }) {
+  const { token, currentUser } = useAuth();
+  if (!token) return <Navigate to="/login" />;
+  if (currentUser?.role !== 'admin') {
+    return <Navigate to="/dashboard" />;
+  }
+  return children;
 }
 
 function AppRoutes() {
@@ -33,7 +44,27 @@ function AppRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={withLayout(DashboardPage)} />
-        <Route path="/nlp-logs" element={withLayout(NlpLogsPage)} />
+        <Route path="/transactions" element={withLayout(TransactionsPage)} />
+        <Route
+          path="/nlp-logs"
+          element={
+            <AdminRoute>
+              <AppLayout onLogout={logout}>
+                <NlpLogsPage />
+              </AppLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminRoute>
+              <AppLayout onLogout={logout}>
+                <AdminUsersPage />
+              </AppLayout>
+            </AdminRoute>
+          }
+        />
         <Route path="/settings" element={withLayout(SettingsPage)} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

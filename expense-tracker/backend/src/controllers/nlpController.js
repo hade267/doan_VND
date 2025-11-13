@@ -1,9 +1,9 @@
+const dayjs = require('dayjs');
 const { Op } = require('sequelize');
 const { NlpLog, Category, Transaction } = require('../models');
 const { getNlpConfig, saveNlpConfig } = require('../utils/nlpConfig');
-const { parseWithGemini } = require('../utils/ai/geminiClient');
-const { getCachedResult, setCachedResult } = require('../utils/ai/cache');
-const { enforceDailyAiLimit } = require('../utils/ai/aiUsage');
+const { parseNaturalLanguage } = require('../utils/nlp');
+const { buildSummary } = require('./reportController');
 
 const buildLogWhereClause = (userId, status) => {
   const where = { user_id: userId };
@@ -11,6 +11,89 @@ const buildLogWhereClause = (userId, status) => {
   if (status === 'failed') where.is_success = false;
   return where;
 };
+
+const PERIOD_PRESETS = [
+  {
+    label: 'hôm nay',
+    keywords: ['hôm nay', 'today', 'ngày hôm nay'],
+    range: () => {
+      const start = dayjs().startOf('day');
+      return {
+        startDate: start.toISOString(),
+        endDate: start.endOf('day').toISOString(),
+        label: 'hôm nay',
+      };
+    },
+  },
+  {
+    label: 'tuần này',
+    keywords: ['tuần này', 'this week'],
+    range: () => {
+      const start = dayjs().startOf('week');
+      return {
+        startDate: start.toISOString(),
+        endDate: start.endOf('week').toISOString(),
+        label: 'tuần này',
+      };
+    },
+  },
+  {
+    label: 'tháng này',
+    keywords: ['tháng này', 'this month'],
+    range: () => {
+      const start = dayjs().startOf('month');
+      return {
+        startDate: start.toISOString(),
+        endDate: start.endOf('month').toISOString(),
+        label: 'tháng này',
+      };
+    },
+  },
+  {
+    label: 'năm nay',
+    keywords: ['năm nay', 'this year'],
+    range: () => {
+      const start = dayjs().startOf('year');
+      return {
+        startDate: start.toISOString(),
+        endDate: start.endOf('year').toISOString(),
+        label: 'năm nay',
+      };
+    },
+  },
+];
+
+const resolvePeriod = (text) => {
+  const lowered = text.toLowerCase();
+  for (const preset of PERIOD_PRESETS) {
+    if (preset.keywords.some((kw) => lowered.includes(kw))) {
+      return preset.range();
+    }
+  }
+  const start = dayjs().startOf('month');
+  return {
+    startDate: start.toISOString(),
+    endDate: start.endOf('month').toISOString(),
+    label: 'tháng này',
+  };
+};
+
+const METRIC_KEYWORDS = {
+  income: ['thu nhập', 'income', 'kiếm được'],
+  expense: ['chi tiêu', 'tiêu bao nhiêu', 'expense', 'đã tiêu', 'đã chi'],
+  balance: ['cân bằng', 'số dư', 'còn lại', 'balance'],
+};
+
+const detectMetric = (text) => {
+  const lowered = text.toLowerCase();
+  if (METRIC_KEYWORDS.income.some((kw) => lowered.includes(kw))) return 'income';
+  if (METRIC_KEYWORDS.expense.some((kw) => lowered.includes(kw))) return 'expense';
+  if (METRIC_KEYWORDS.balance.some((kw) => lowered.includes(kw))) return 'balance';
+  return null;
+};
+
+const formatCurrency = (value) =>
+  Number(value || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
 
 const nlpController = {
   async listLogs(req, res) {
@@ -131,11 +214,21 @@ const nlpController = {
   async updateConfig(req, res) {
     try {
       const current = getNlpConfig();
+      const { confirm = false } = req.body;
       const updated = {
         incomeKeywords: req.body.incomeKeywords || current.incomeKeywords,
         expenseKeywords: req.body.expenseKeywords || current.expenseKeywords,
         categories: req.body.categories || current.categories,
       };
+
+      if (!confirm) {
+        return res.json({
+          requiresConfirmation: true,
+          preview: updated,
+          message: 'Xác nhận cấu hình NLP trước khi lưu.',
+        });
+      }
+
       saveNlpConfig(updated);
       res.json(updated);
     } catch (error) {
@@ -149,21 +242,67 @@ const nlpController = {
       return res.status(400).json({ message: 'Text is required.' });
     }
     try {
-      if (!process.env.GEMINI_API_KEY) {
-        return res.status(500).json({ message: 'GEMINI_API_KEY is not configured.' });
-      }
-
-      const cached = getCachedResult(req.user.id, text);
-      if (cached) {
-        return res.json({ ...cached, engine: 'gemini', cached: true });
-      }
-
-      await enforceDailyAiLimit(req.user.id);
-      const aiResult = await parseWithGemini(text);
-      setCachedResult(req.user.id, text, aiResult);
-      return res.json({ ...aiResult, engine: 'gemini', cached: false });
+      const parsed = parseNaturalLanguage(text);
+      return res.json({ ...parsed, engine: 'rules', cached: false });
     } catch (error) {
       res.status(500).json({ message: 'Cannot parse text.', error: error.message });
+    }
+  },
+
+  async askSummary(req, res) {
+    const { text } = req.body;
+    if (!text || text.trim().length < 3) {
+      return res.status(400).json({ message: 'Vui lòng nhập câu hỏi.' });
+    }
+    try {
+      const period = resolvePeriod(text);
+      const summary = await buildSummary({
+        userId: req.user.id,
+        startDate: period.startDate,
+        endDate: period.endDate,
+      });
+
+      const metric = detectMetric(text);
+      const lowered = text.toLowerCase();
+      const categoryMatch =
+        summary.categoryBreakdown?.find((item) => {
+          const name = item.category?.name?.toLowerCase();
+          return name && lowered.includes(name);
+        }) || null;
+
+      let answer = '';
+      if (categoryMatch) {
+        answer =
+          categoryMatch.type === 'income'
+            ? `Danh mục ${categoryMatch.category.name} đã ghi nhận thu ${formatCurrency(categoryMatch.total)} trong ${
+                period.label
+              }.`
+            : `Bạn đã chi ${formatCurrency(categoryMatch.total)} cho ${categoryMatch.category.name} trong ${period.label}.`;
+      } else if (metric === 'income') {
+        answer = `Thu nhập ${period.label} của bạn là ${formatCurrency(summary.totalIncome)}.`;
+      } else if (metric === 'expense') {
+        answer = `Bạn đã chi ${formatCurrency(summary.totalExpense)} trong ${period.label}.`;
+      } else if (metric === 'balance') {
+        answer = `Số dư ${period.label} là ${formatCurrency(summary.balance)} (thu ${formatCurrency(
+          summary.totalIncome
+        )} - chi ${formatCurrency(summary.totalExpense)}).`;
+      } else {
+        answer = `Trong ${period.label}, bạn thu ${formatCurrency(summary.totalIncome)} và chi ${formatCurrency(
+          summary.totalExpense
+        )}.`;
+      }
+
+      res.json({
+        answer,
+        summary,
+        context: {
+          period,
+          metric: metric || (categoryMatch ? categoryMatch.category?.name : null),
+        },
+      });
+    } catch (error) {
+      console.error('[NLP] askSummary failed', error);
+      res.status(500).json({ message: 'Không thể trả lời câu hỏi.', error: error.message });
     }
   },
 };
