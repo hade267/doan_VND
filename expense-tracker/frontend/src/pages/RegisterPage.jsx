@@ -48,6 +48,9 @@ const RegisterPage = () => {
       </div>
       <div className="auth__card">
         <div className="auth__panel">
+          <div className="auth__logo">
+            <img src="/logo_light.png" alt="MoneyWave" />
+          </div>
           <h2>Tạo tài khoản miễn phí</h2>
           <p>Chỉ mất 1 phút để hoàn tất</p>
           {error && <p className="error-text">{error}</p>}

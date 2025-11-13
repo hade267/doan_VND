@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { fetchAdminUsers, updateAdminUser, fetchAdminStats } from '../services/adminService';
+import { fetchNlpConfig, updateNlpConfig } from '../services/nlpService';
 
 const AdminUsersPage = () => {
   const [users, setUsers] = useState([]);
@@ -7,6 +8,15 @@ const AdminUsersPage = () => {
   const [filters, setFilters] = useState({ q: '', role: '', status: '' });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [nlpForm, setNlpForm] = useState({
+    income: '',
+    expense: '',
+    categories: '[]',
+  });
+  const [nlpStatus, setNlpStatus] = useState('');
+  const [nlpPreview, setNlpPreview] = useState(null);
+  const [nlpPendingPayload, setNlpPendingPayload] = useState(null);
+  const [nlpLoading, setNlpLoading] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -30,6 +40,26 @@ const AdminUsersPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
+  useEffect(() => {
+    const loadConfig = async () => {
+      setNlpLoading(true);
+      try {
+        const data = await fetchNlpConfig();
+        setNlpForm({
+          income: (data?.incomeKeywords || []).join(', '),
+          expense: (data?.expenseKeywords || []).join(', '),
+          categories: JSON.stringify(data?.categories || [], null, 2),
+        });
+        setNlpStatus('');
+      } catch (error) {
+        setNlpStatus(error.response?.data?.message || 'Không thể tải cấu hình NLP.');
+      } finally {
+        setNlpLoading(false);
+      }
+    };
+    loadConfig();
+  }, []);
+
   const handleUpdateUser = async (id, payload) => {
     try {
       await updateAdminUser(id, payload);
@@ -38,6 +68,63 @@ const AdminUsersPage = () => {
     } catch (error) {
       setMessage(error.response?.data?.message || 'Không thể cập nhật người dùng.');
     }
+  };
+
+  const parseKeywordInput = (value = '') =>
+    value
+      .split(/[\n,]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+  const buildNlpPayload = () => {
+    let categoriesPayload = [];
+    if (nlpForm.categories.trim()) {
+      try {
+        categoriesPayload = JSON.parse(nlpForm.categories);
+        if (!Array.isArray(categoriesPayload)) {
+          throw new Error('Danh sách danh mục phải là mảng.');
+        }
+      } catch (error) {
+        setNlpStatus('JSON danh mục không hợp lệ.');
+        return null;
+      }
+    }
+    return {
+      incomeKeywords: parseKeywordInput(nlpForm.income),
+      expenseKeywords: parseKeywordInput(nlpForm.expense),
+      categories: categoriesPayload,
+    };
+  };
+
+  const handleSaveNlp = async (confirm = false) => {
+    const payload = confirm ? nlpPendingPayload : buildNlpPayload();
+    if (!payload) return;
+
+    setNlpLoading(true);
+    setNlpStatus('');
+    try {
+      const body = confirm ? { ...payload, confirm: true } : payload;
+      const data = await updateNlpConfig(body);
+      if (data?.requiresConfirmation) {
+        setNlpPreview(data.preview || null);
+        setNlpPendingPayload(payload);
+        setNlpStatus(data.message || 'Xác nhận cấu hình trước khi áp dụng.');
+        return;
+      }
+      setNlpPreview(null);
+      setNlpPendingPayload(null);
+      setNlpStatus('Đã lưu cấu hình NLP.');
+    } catch (error) {
+      setNlpStatus(error.response?.data?.message || 'Không thể lưu cấu hình.');
+    } finally {
+      setNlpLoading(false);
+    }
+  };
+
+  const cancelNlpPreview = () => {
+    setNlpPreview(null);
+    setNlpPendingPayload(null);
+    setNlpStatus('Đã huỷ xem trước.');
   };
 
   return (
@@ -173,6 +260,67 @@ const AdminUsersPage = () => {
               </tbody>
             </table>
             {!users.length && <p>Không có người dùng nào.</p>}
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <h2>Cấu hình NLP</h2>
+        <p>Tùy chỉnh từ khóa và danh mục mà NLP sử dụng để hiểu câu lệnh chi tiêu.</p>
+        <div className="settings-grid">
+          <div>
+            <label>Từ khóa thu nhập</label>
+            <textarea
+              rows={3}
+              value={nlpForm.income}
+              onChange={(e) => setNlpForm((prev) => ({ ...prev, income: e.target.value }))}
+              placeholder="luong, thu nhap, thuong..."
+            />
+          </div>
+          <div>
+            <label>Từ khóa chi tiêu</label>
+            <textarea
+              rows={3}
+              value={nlpForm.expense}
+              onChange={(e) => setNlpForm((prev) => ({ ...prev, expense: e.target.value }))}
+              placeholder="chi, mua, an uong..."
+            />
+          </div>
+        </div>
+        <div className="settings-form">
+          <label>Danh sách danh mục (JSON)</label>
+          <textarea
+            rows={8}
+            value={nlpForm.categories}
+            onChange={(e) => setNlpForm((prev) => ({ ...prev, categories: e.target.value }))}
+            placeholder='[{"name":"An uong","type":"expense","keywords":["an","uong"]}]'
+          />
+        </div>
+        <div className="card__actions">
+          <button className="button" type="button" onClick={() => handleSaveNlp(false)} disabled={nlpLoading}>
+            {nlpLoading ? 'Đang xử lý...' : 'Xem trước'}
+          </button>
+          <button
+            className="button button--ghost"
+            type="button"
+            onClick={() => handleSaveNlp(true)}
+            disabled={!nlpPreview || nlpLoading}
+          >
+            Áp dụng cấu hình
+          </button>
+        </div>
+        {nlpStatus && <p className="settings-message">{nlpStatus}</p>}
+        {nlpPreview && (
+          <div className="nlp-config-preview">
+            <pre>{JSON.stringify(nlpPreview, null, 2)}</pre>
+            <div className="card__actions">
+              <button className="button button--ghost" type="button" onClick={cancelNlpPreview} disabled={nlpLoading}>
+                Huỷ xem trước
+              </button>
+              <button className="button" type="button" onClick={() => handleSaveNlp(true)} disabled={nlpLoading}>
+                {nlpLoading ? 'Đang lưu...' : 'Xác nhận & lưu'}
+              </button>
+            </div>
           </div>
         )}
       </div>

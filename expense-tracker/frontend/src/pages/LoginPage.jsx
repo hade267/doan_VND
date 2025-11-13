@@ -46,6 +46,9 @@ const LoginPage = () => {
       </div>
       <div className="auth__card">
         <div className="auth__panel">
+          <div className="auth__logo">
+            <img src="/logo_light.png" alt="MoneyWave" />
+          </div>
           <h2>Xin chào</h2>
           <p>Đăng nhập để tiếp tục quản lý chi tiêu</p>
           {error && <p className="error-text">{error}</p>}

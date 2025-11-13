@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '../context/AuthContext';
 import {
   fetchCategories,
   createCategory,
@@ -10,7 +9,6 @@ import {
   createBudget,
   deleteBudget,
 } from '../services/budgetService';
-import { fetchNlpConfig, updateNlpConfig } from '../services/nlpService';
 
 const sections = [
   {
@@ -24,8 +22,6 @@ const sections = [
 ];
 
 const SettingsPage = () => {
-  const { currentUser } = useAuth();
-  const isAdmin = currentUser?.role === 'admin';
   const [language, setLanguage] = useState('vi');
   const [currency, setCurrency] = useState('VND');
   const [categories, setCategories] = useState([]);
@@ -44,16 +40,6 @@ const SettingsPage = () => {
     period: 'monthly',
     start_date: new Date().toISOString().slice(0, 10),
   });
-  const [nlpConfigForm, setNlpConfigForm] = useState({
-    income: '',
-    expense: '',
-    categories: '[]',
-  });
-  const [nlpConfigStatus, setNlpConfigStatus] = useState('');
-  const [nlpConfigPreview, setNlpConfigPreview] = useState(null);
-  const [nlpConfigPending, setNlpConfigPending] = useState(null);
-  const [nlpConfigLoading, setNlpConfigLoading] = useState(false);
-
   const loadCategories = async () => {
     setLoading((prev) => ({ ...prev, categories: true }));
     try {
@@ -83,32 +69,6 @@ const SettingsPage = () => {
     loadCategories();
     loadBudgets();
   }, []);
-
-  useEffect(() => {
-    if (!isAdmin) {
-      setNlpConfigStatus('');
-      setNlpConfigPreview(null);
-      setNlpConfigPending(null);
-      return;
-    }
-    const sync = async () => {
-      setNlpConfigLoading(true);
-      try {
-        const data = await fetchNlpConfig();
-        setNlpConfigForm({
-          income: (data?.incomeKeywords || []).join(', '),
-          expense: (data?.expenseKeywords || []).join(', '),
-          categories: JSON.stringify(data?.categories || [], null, 2),
-        });
-        setNlpConfigStatus('');
-      } catch (error) {
-        setNlpConfigStatus(error.response?.data?.message || 'Không thể tải cấu hình NLP.');
-      } finally {
-        setNlpConfigLoading(false);
-      }
-    };
-    sync();
-  }, [isAdmin]);
 
   const expenseCategories = useMemo(
     () => categories.filter((item) => item.type === 'expense'),
@@ -146,64 +106,6 @@ const SettingsPage = () => {
     } catch (error) {
       setFormMessage(error.response?.data?.message || 'Không thể xóa danh mục.');
     }
-  };
-
-  const parseKeywordInput = (value = '') =>
-    value
-      .split(/[\n,]/)
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-  const buildNlpPayload = () => {
-    let categoriesPayload = [];
-    if (nlpConfigForm.categories.trim()) {
-      try {
-        categoriesPayload = JSON.parse(nlpConfigForm.categories);
-        if (!Array.isArray(categoriesPayload)) {
-          throw new Error('Categories phải là mảng.');
-        }
-      } catch (error) {
-        setNlpConfigStatus('JSON danh mục không hợp lệ.');
-        return null;
-      }
-    }
-    return {
-      incomeKeywords: parseKeywordInput(nlpConfigForm.income),
-      expenseKeywords: parseKeywordInput(nlpConfigForm.expense),
-      categories: categoriesPayload,
-    };
-  };
-
-  const handleSaveNlpConfig = async (confirm = false) => {
-    if (!isAdmin) return;
-    const payload = confirm ? nlpConfigPending : buildNlpPayload();
-    if (!payload) return;
-
-    setNlpConfigLoading(true);
-    setNlpConfigStatus('');
-    try {
-      const body = confirm ? { ...payload, confirm: true } : payload;
-      const data = await updateNlpConfig(body);
-      if (data?.requiresConfirmation) {
-        setNlpConfigPreview(data.preview || null);
-        setNlpConfigPending(payload);
-        setNlpConfigStatus(data.message || 'Xác nhận cấu hình trước khi áp dụng.');
-        return;
-      }
-      setNlpConfigPreview(null);
-      setNlpConfigPending(null);
-      setNlpConfigStatus('Đã lưu cấu hình NLP.');
-    } catch (error) {
-      setNlpConfigStatus(error.response?.data?.message || 'Không thể lưu cấu hình.');
-    } finally {
-      setNlpConfigLoading(false);
-    }
-  };
-
-  const cancelNlpPreview = () => {
-    setNlpConfigPreview(null);
-    setNlpConfigPending(null);
-    setNlpConfigStatus('Đã huỷ bản xem trước.');
   };
 
   const handleBudgetSubmit = async (e) => {
@@ -446,69 +348,6 @@ const SettingsPage = () => {
           </div>
         </div>
       </div>
-
-      {isAdmin ? (
-        <div className="card">
-          <h2>Cấu hình NLP</h2>
-          <p>Chỉ admin mới được phép tuỳ chỉnh từ khóa và danh mục mặc định dùng cho NLP.</p>
-          <div className="settings-grid">
-            <div>
-              <label>Từ khóa thu nhập</label>
-              <textarea
-                rows={3}
-                value={nlpConfigForm.income}
-                onChange={(e) => setNlpConfigForm((prev) => ({ ...prev, income: e.target.value }))}
-                placeholder="luong, thu nhap, thuong..."
-              />
-            </div>
-            <div>
-              <label>Từ khóa chi tiêu</label>
-              <textarea
-                rows={3}
-                value={nlpConfigForm.expense}
-                onChange={(e) => setNlpConfigForm((prev) => ({ ...prev, expense: e.target.value }))}
-                placeholder="chi, mua, an uong..."
-              />
-            </div>
-          </div>
-          <div className="settings-form">
-            <label>Danh sách danh mục (JSON)</label>
-            <textarea
-              rows={8}
-              value={nlpConfigForm.categories}
-              onChange={(e) => setNlpConfigForm((prev) => ({ ...prev, categories: e.target.value }))}
-              placeholder='[{"name":"An uong","type":"expense","keywords":["an","uong"]}]'
-            />
-          </div>
-          <div className="card__actions">
-            <button className="button" type="button" onClick={() => handleSaveNlpConfig(false)} disabled={nlpConfigLoading}>
-              {nlpConfigLoading ? 'Đang xử lý...' : 'Xem trước'}
-            </button>
-            <button className="button button--ghost" type="button" onClick={() => handleSaveNlpConfig(true)} disabled={!nlpConfigPreview || nlpConfigLoading}>
-              Áp dụng cấu hình
-            </button>
-            {nlpConfigStatus && <span className="settings-message">{nlpConfigStatus}</span>}
-          </div>
-          {nlpConfigPreview && (
-            <div className="nlp-config-preview">
-              <pre>{JSON.stringify(nlpConfigPreview, null, 2)}</pre>
-              <div className="card__actions">
-                <button className="button button--ghost" type="button" onClick={cancelNlpPreview} disabled={nlpConfigLoading}>
-                  Huỷ xem trước
-                </button>
-                <button className="button" type="button" onClick={() => handleSaveNlpConfig(true)} disabled={nlpConfigLoading}>
-                  {nlpConfigLoading ? 'Đang lưu...' : 'Xác nhận & lưu'}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="card">
-          <h2>Cấu hình NLP</h2>
-          <p>Bạn không có quyền chỉnh sửa. Hãy liên hệ admin nếu cần cập nhật.</p>
-        </div>
-      )}
 
       <div className="card">
         <h2>Mục nâng cao</h2>
