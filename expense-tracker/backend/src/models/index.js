@@ -64,6 +64,14 @@ NlpLog.belongsTo(User, {
   foreignKey: 'user_id',
 });
 
+Transaction.hasMany(NlpLog, {
+  foreignKey: 'transaction_id',
+  onDelete: 'SET NULL',
+});
+NlpLog.belongsTo(Transaction, {
+  foreignKey: 'transaction_id',
+});
+
 // Sync database models
 const syncModels = async () => {
   try {

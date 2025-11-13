@@ -16,28 +16,59 @@ const LoginPage = () => {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to log in');
+      setError(err.response?.data?.message || 'Đăng nhập thất bại');
     }
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email">Email:</label>
-          <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+    <div className="auth">
+      <div className="auth__hero">
+        <div className="pill">MoneyLover Inspired</div>
+        <h1>Quản lý tài chính thông minh</h1>
+        <p>Ghi lại chi tiêu, lập ngân sách và xem báo cáo trực quan mọi lúc mọi nơi.</p>
+        <ul className="auth__hero-list">
+          <li>💳 Đồng bộ giao dịch tức thì</li>
+          <li>📊 Báo cáo trực quan, dễ hiểu</li>
+          <li>🤖 Nhập giao dịch bằng ngôn ngữ tự nhiên</li>
+        </ul>
+      </div>
+      <div className="auth__card">
+        <div className="auth__panel">
+          <h2>Xin chào 👋</h2>
+          <p>Đăng nhập để tiếp tục quản lý chi tiêu</p>
+          {error && <p className="error-text">{error}</p>}
+          <form onSubmit={handleSubmit}>
+            <div className="auth__form-group">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@email.com"
+                required
+              />
+            </div>
+            <div className="auth__form-group">
+              <label htmlFor="password">Mật khẩu</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            <button className="button" type="submit">
+              Đăng nhập
+            </button>
+          </form>
+          <div className="auth__footer">
+            Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link>
+          </div>
         </div>
-        <div>
-          <label htmlFor="password">Password:</label>
-          <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
-        <button type="submit">Login</button>
-      </form>
-      <p>
-        Don't have an account? <Link to="/register">Register</Link>
-      </p>
+      </div>
     </div>
   );
 };

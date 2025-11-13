@@ -6,6 +6,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import NlpLogsPage from './pages/NlpLogsPage';
+import AppLayout from './components/AppLayout';
 
 const NotFoundPage = () => <h1>404 Not Found</h1>;
 
@@ -16,20 +18,21 @@ function ProtectedRoute({ children }) {
 }
 
 function AppRoutes() {
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
+  const withLayout = (Component) => (
+    <ProtectedRoute>
+      <AppLayout onLogout={logout}>
+        <Component />
+      </AppLayout>
+    </ProtectedRoute>
+  );
   return (
      <Routes>
         <Route path="/" element={token ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/dashboard" element={withLayout(DashboardPage)} />
+        <Route path="/nlp-logs" element={withLayout(NlpLogsPage)} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
   )

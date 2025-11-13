@@ -30,6 +30,31 @@ NlpLog.init(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
+    corrections: {
+      type: DataTypes.JSONB,
+    },
+    feedback: {
+      type: DataTypes.TEXT,
+    },
+    engine: {
+      type: DataTypes.STRING(50),
+      defaultValue: 'rule',
+    },
+    confidence: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0.0,
+    },
+    meta: {
+      type: DataTypes.JSONB,
+    },
+    transaction_id: {
+      type: DataTypes.UUID,
+      references: {
+        model: 'transactions',
+        key: 'id',
+      },
+      onDelete: 'SET NULL',
+    },
   },
   {
     sequelize,

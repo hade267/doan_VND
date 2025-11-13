@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import TransactionList from '../components/TransactionList';
 import ChartSummary from '../components/ChartSummary';
 
 const DashboardPage = () => {
-  const { logout } = useAuth();
   const navigate = useNavigate();
   const [nlpInput, setNlpInput] = useState('');
   const [transactions, setTransactions] = useState([]);
@@ -59,22 +57,39 @@ const DashboardPage = () => {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   return (
     <div className="dashboard">
       <header className="dashboard__header">
         <div>
-          <h1>Expense Tracker</h1>
-          <p>Nhập câu tự nhiên để ghi lại giao dịch của bạn.</p>
+          <div className="pill">Money Lover Style</div>
+          <h1>Chào mừng trở lại!</h1>
+          <p>Nhập câu tự nhiên để MoneyWave ghi lại giao dịch giúp bạn.</p>
         </div>
-        <button className="button button--ghost" onClick={handleLogout}>
-          Đăng xuất
-        </button>
       </header>
+
+      <div className="quick-cards">
+        <div className="quick-card">
+          <small>Số dư khả dụng</small>
+          <div className="icon-badge">💼</div>
+          <strong>
+            {(summary?.balance ?? 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+          </strong>
+        </div>
+        <div className="quick-card">
+          <small>Thu nhập tháng</small>
+          <div className="icon-badge">📈</div>
+          <strong>
+            {(summary?.totalIncome ?? 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+          </strong>
+        </div>
+        <div className="quick-card">
+          <small>Chi tiêu tháng</small>
+          <div className="icon-badge">📉</div>
+          <strong>
+            {(summary?.totalExpense ?? 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+          </strong>
+        </div>
+      </div>
 
       <section className="card">
         <h2>Ghi chép nhanh</h2>

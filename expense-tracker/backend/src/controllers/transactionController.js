@@ -1,6 +1,8 @@
 const { Transaction, Category, NlpLog } = require('../models');
 const { Op } = require('sequelize');
-const { parseNaturalLanguage } = require('../utils/nlp');
+const { parseWithGemini } = require('../utils/ai/geminiClient');
+const { getCachedResult, setCachedResult } = require('../utils/ai/cache');
+const { enforceDailyAiLimit } = require('../utils/ai/aiUsage');
 
 const transactionController = {
   // Create a new transaction
@@ -38,7 +40,7 @@ const transactionController = {
 
   async createTransactionFromNLP(req, res) {
     const userId = req.user.id;
-    const { text } = req.body;
+    const { text, overrides = {} } = req.body;
 
     if (!text || text.trim().length < 3) {
       console.log('[NLP] Invalid text input', { userId, text });
@@ -47,24 +49,54 @@ const transactionController = {
 
     try {
       console.log('[NLP] Parsing text', { userId, text });
-      const parsed = parseNaturalLanguage(text);
 
-      if (!parsed.amount || Number.isNaN(parsed.amount)) {
-        console.log('[NLP] Missing amount detected', { userId, parsed });
+      const meta = {
+        ai: null,
+        cached: false,
+      };
+
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ message: 'GEMINI_API_KEY is not configured.' });
+      }
+
+      let parsed = getCachedResult(userId, text);
+      if (parsed) {
+        meta.cached = true;
+      } else {
+        await enforceDailyAiLimit(userId);
+        parsed = await parseWithGemini(text);
+        setCachedResult(userId, text, parsed);
+      }
+
+      meta.ai = parsed.confidence || 0.8;
+      const engine = 'gemini';
+
+      const finalData = {
+        ...parsed,
+        ...overrides,
+      };
+
+      if (!finalData.amount || Number.isNaN(finalData.amount)) {
+        console.log('[NLP] Missing amount detected', { userId, parsed, overrides });
         return res.status(400).json({ message: 'Could not detect amount from sentence.' });
       }
 
+      const categoryName = finalData.category;
+      if (!categoryName) {
+        console.log('[NLP] Missing category detected', { userId, parsed, overrides });
+        return res.status(400).json({ message: 'Could not detect category from sentence.' });
+      }
       let category = await Category.findOne({
-        where: { user_id: userId, name: parsed.category, type: parsed.type },
+        where: { user_id: userId, name: categoryName, type: finalData.type },
       });
 
       if (!category) {
         category = await Category.create({
           user_id: userId,
-          name: parsed.category,
-          type: parsed.type,
-          icon: '📝',
-          color: '#9CA3AF',
+          name: categoryName,
+          type: finalData.type,
+          icon: overrides.icon || '📝',
+          color: overrides.color || '#9CA3AF',
           is_default: false,
         });
       }
@@ -72,17 +104,22 @@ const transactionController = {
       const transaction = await Transaction.create({
         user_id: userId,
         category_id: category.id,
-        amount: parsed.amount,
-        type: parsed.type,
-        description: parsed.description,
-        transaction_date: new Date(parsed.date),
+        amount: finalData.amount,
+        type: finalData.type,
+        description: finalData.description,
+        transaction_date: new Date(finalData.date),
       });
 
       await NlpLog.create({
         user_id: userId,
         input_text: text,
         parsed_json: parsed,
+        corrections: overrides,
+        transaction_id: transaction.id,
         is_success: true,
+        engine,
+        confidence: parsed.confidence || 0,
+        meta,
       });
 
       console.log('[NLP] Transaction created successfully', {
@@ -97,6 +134,8 @@ const transactionController = {
         user_id: userId,
         input_text: text,
         parsed_json: { error: error.message },
+        corrections: overrides,
+        engine: 'gemini',
         is_success: false,
       }).catch(() => {});
       res.status(500).json({ message: 'Error parsing natural language input.', error: error.message });

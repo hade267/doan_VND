@@ -12,7 +12,8 @@ const TransactionList = ({ data = [] }) => {
             const categoryName = item.category?.name || 'Không phân loại';
             return (
               <li key={item.id} className="transaction-item">
-                <div>
+                <div className="transaction-item__info">
+                  <span className="icon-badge">{item.category?.icon || '💸'}</span>
                   <div className="transaction-item__title">{item.description || categoryName}</div>
                   <div className="transaction-item__meta">
                     {new Date(item.transaction_date).toLocaleDateString()} • {categoryName}

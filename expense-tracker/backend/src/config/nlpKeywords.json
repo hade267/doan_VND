@@ -1,0 +1,61 @@
+{
+  "incomeKeywords": ["luong", "thu nhap", "nhan", "thuong", "ban duoc"],
+  "expenseKeywords": [
+    "chi",
+    "mua",
+    "tra",
+    "dong",
+    "mat",
+    "het",
+    "an",
+    "uong",
+    "xang",
+    "choi",
+    "cho",
+    "tieu"
+  ],
+  "categories": [
+    {
+      "name": "An uong",
+      "type": "expense",
+      "keywords": ["an", "uong", "com", "pho", "bun", "cafe", "quan"],
+      "icon": "🍜",
+      "color": "#fb923c"
+    },
+    {
+      "name": "Di lai",
+      "type": "expense",
+      "keywords": ["xang", "xe", "grab", "taxi", "bus", "ve xe"],
+      "icon": "🚌",
+      "color": "#3b82f6"
+    },
+    {
+      "name": "Mua sam",
+      "type": "expense",
+      "keywords": ["mua", "quan ao", "giay", "tui", "do dien tu"],
+      "icon": "🛍️",
+      "color": "#ec4899"
+    },
+    {
+      "name": "Nha cua",
+      "type": "expense",
+      "keywords": ["tien nha", "dien", "nuoc", "internet"],
+      "icon": "🏠",
+      "color": "#22c55e"
+    },
+    {
+      "name": "Hoc tap",
+      "type": "expense",
+      "keywords": ["hoc", "sach", "hoc phi", "khoa hoc"],
+      "icon": "📚",
+      "color": "#a855f7"
+    },
+    {
+      "name": "Thu nhap khac",
+      "type": "income",
+      "keywords": ["thu", "kiem", "ban"],
+      "icon": "💰",
+      "color": "#facc15"
+    }
+  ]
+}

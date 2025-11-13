@@ -1,84 +1,68 @@
+const { getNlpConfig } = require('./nlpConfig');
+
 const normalizeText = (text) =>
   text
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
 
-const incomeKeywords = ['luong', 'thu nhap', 'nhan', 'thuong', 'ban duoc'];
-const expenseKeywords = [
-  'chi',
-  'mua',
-  'tra',
-  'dong',
-  'mat',
-  'het',
-  'an',
-  'uong',
-  'xang',
-  'choi',
+const detectType = (text, incomeKeywords = [], expenseKeywords = []) => {
+  const matchedIncome = incomeKeywords.filter((keyword) => text.includes(keyword));
+  const matchedExpense = expenseKeywords.filter((keyword) => text.includes(keyword));
+
+  if (matchedIncome.length === 0 && matchedExpense.length === 0) {
+    return { type: 'expense', confidence: 0.2 };
+  }
+
+  if (matchedIncome.length >= matchedExpense.length) {
+    return { type: 'income', confidence: Math.min(1, matchedIncome.length / 3) };
+  }
+
+  return { type: 'expense', confidence: Math.min(1, matchedExpense.length / 3) };
+};
+
+const amountRegexes = [
+  /(\d+[.,]?\d*)\s*(trieu|triệu)/,
+  /(\d+[.,]?\d*)\s*(nghin|ngan|ngàn|k)/,
+  /(\d+[.,]?\d*)\s*(vnd|đ|d)/,
+  /(\d+[.,]?\d*)/,
 ];
 
-const categoryMap = {
-  an: 'An uong',
-  uong: 'An uong',
-  com: 'An uong',
-  quan: 'An uong',
-  cafe: 'An uong',
-  xang: 'Di lai',
-  xe: 'Di lai',
-  grab: 'Di lai',
-  taxi: 'Di lai',
-  bus: 'Di lai',
-  mua: 'Mua sam',
-  ao: 'Mua sam',
-  giay: 'Mua sam',
-  sieu: 'Mua sam',
-  nha: 'Nha cua',
-  dien: 'Nha cua',
-  nuoc: 'Nha cua',
-  internet: 'Nha cua',
-  hoc: 'Hoc tap',
-  sach: 'Hoc tap',
-  hocphi: 'Hoc tap',
-  thu: 'Thu nhap khac',
-  kiem: 'Thu nhap khac',
-};
-
-const detectType = (text) => {
-  if (incomeKeywords.some((keyword) => text.includes(keyword))) {
-    return 'income';
-  }
-  if (expenseKeywords.some((keyword) => text.includes(keyword))) {
-    return 'expense';
-  }
-  return 'expense';
-};
-
 const extractAmount = (text) => {
-  const amountMatch = text.match(/(\d+[.,]?\d*)\s*(trieu|nghin|ngan|k)?/);
-  if (!amountMatch) {
-    return 0;
-  }
+  for (const regex of amountRegexes) {
+    const match = text.match(regex);
+    if (match) {
+      const numeric = parseFloat(match[1].replace(',', '.'));
+      const unit = match[2] || '';
 
-  const numeric = parseFloat(amountMatch[1].replace(',', '.'));
-  const unit = amountMatch[2] || '';
-
-  if (unit.includes('trieu')) {
-    return numeric * 1_000_000;
-  }
-  if (unit.includes('nghin') || unit.includes('ngan') || unit === 'k') {
-    return numeric * 1_000;
-  }
-  return numeric;
-};
-
-const extractCategory = (text) => {
-  for (const [keyword, categoryName] of Object.entries(categoryMap)) {
-    if (text.includes(keyword)) {
-      return categoryName;
+      if (/trieu|triệu/.test(unit)) {
+        return { amount: numeric * 1_000_000, confidence: 0.95 };
+      }
+      if (/nghin|ngan|ngàn|k/.test(unit)) {
+        return { amount: numeric * 1_000, confidence: 0.85 };
+      }
+      if (/vnd|đ|d/.test(unit) || unit === '') {
+        return { amount: numeric, confidence: 0.7 };
+      }
     }
   }
-  return 'Khac';
+  return { amount: 0, confidence: 0 };
+};
+
+const extractCategory = (text, categories = []) => {
+  let bestMatch = { name: 'Khac', confidence: 0 };
+
+  for (const category of categories) {
+    const matches = category.keywords?.filter((keyword) => text.includes(keyword)) || [];
+    if (matches.length > bestMatch.confidence) {
+      bestMatch = {
+        name: category.name,
+        confidence: Math.min(1, matches.length / 3),
+      };
+    }
+  }
+
+  return bestMatch;
 };
 
 const extractDate = (text) => {
@@ -97,10 +81,18 @@ const extractDate = (text) => {
 };
 
 const parseNaturalLanguage = (text) => {
+  const config = getNlpConfig();
   const normalized = normalizeText(text || '');
-  const type = detectType(normalized);
-  const amount = extractAmount(normalized);
-  const category = extractCategory(normalized);
+  const { type, confidence: typeConfidence } = detectType(
+    normalized,
+    config.incomeKeywords,
+    config.expenseKeywords
+  );
+  const { amount, confidence: amountConfidence } = extractAmount(normalized);
+  const { name: category, confidence: categoryConfidence } = extractCategory(
+    normalized,
+    config.categories
+  );
   const date = extractDate(normalized);
 
   return {
@@ -109,6 +101,11 @@ const parseNaturalLanguage = (text) => {
     category,
     date: date.toISOString().split('T')[0],
     description: text.trim(),
+    confidence: {
+      type: typeConfidence,
+      amount: amountConfidence,
+      category: categoryConfidence,
+    },
   };
 };
 

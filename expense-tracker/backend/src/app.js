@@ -42,12 +42,14 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const budgetRoutes = require('./routes/budgetRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const nlpRoutes = require('./routes/nlpRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/nlp', nlpRoutes);
 
 // SỬ DỤNG MIDDLEWARE XỬ LÝ LỖI (Phải ở CUỐI CÙNG)
 // Sau tất cả các app.use() và routes
