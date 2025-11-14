@@ -32,6 +32,7 @@ const SettingsPage = () => {
     period: 'monthly',
     start_date: new Date().toISOString().slice(0, 10),
   });
+  const [budgetErrors, setBudgetErrors] = useState({});
 
   const loadCategories = async () => {
     setLoading((prev) => ({ ...prev, categories: true }));
@@ -100,11 +101,26 @@ const SettingsPage = () => {
     }
   };
 
+  const validateBudgetForm = () => {
+    const errors = {};
+    if (!budgetForm.category_id) {
+      errors.category_id = 'Vui lòng chọn danh mục chi tiêu.';
+    }
+    const amount = Number(budgetForm.amount_limit);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      errors.amount_limit = 'Hạn mức phải lớn hơn 0.';
+    }
+    if (!budgetForm.start_date) {
+      errors.start_date = 'Chọn ngày bắt đầu cho ngân sách.';
+    }
+    setBudgetErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleBudgetSubmit = async (e) => {
     e.preventDefault();
     setFormMessage('');
-    if (!budgetForm.category_id || !Number(budgetForm.amount_limit)) {
-      setFormMessage('Vui lòng chọn danh mục và nhập hạn mức hợp lệ.');
+    if (!validateBudgetForm()) {
       return;
     }
     try {
@@ -115,6 +131,7 @@ const SettingsPage = () => {
         period: budgetForm.period,
         start_date: new Date().toISOString().slice(0, 10),
       });
+      setBudgetErrors({});
       await loadBudgets();
       setFormMessage('Đã tạo ngân sách.');
     } catch (error) {
@@ -262,7 +279,12 @@ const SettingsPage = () => {
                 <label>Danh mục chi tiêu</label>
                 <select
                   value={budgetForm.category_id}
-                  onChange={(e) => setBudgetForm((prev) => ({ ...prev, category_id: e.target.value }))}
+                  onChange={(e) => {
+                    setBudgetForm((prev) => ({ ...prev, category_id: e.target.value }));
+                    if (budgetErrors.category_id) {
+                      setBudgetErrors((prev) => ({ ...prev, category_id: '' }));
+                    }
+                  }}
                 >
                   <option value="">Chọn danh mục</option>
                   {expenseCategories.map((cat) => (
@@ -271,6 +293,7 @@ const SettingsPage = () => {
                     </option>
                   ))}
                 </select>
+                {budgetErrors.category_id && <p className="error-text">{budgetErrors.category_id}</p>}
               </div>
               <div>
                 <label>Hạn mức (VND)</label>
@@ -278,9 +301,15 @@ const SettingsPage = () => {
                   type="number"
                   min="0"
                   value={budgetForm.amount_limit}
-                  onChange={(e) => setBudgetForm((prev) => ({ ...prev, amount_limit: e.target.value }))}
+                  onChange={(e) => {
+                    setBudgetForm((prev) => ({ ...prev, amount_limit: e.target.value }));
+                    if (budgetErrors.amount_limit) {
+                      setBudgetErrors((prev) => ({ ...prev, amount_limit: '' }));
+                    }
+                  }}
                   placeholder="VD: 5000000"
                 />
+                {budgetErrors.amount_limit && <p className="error-text">{budgetErrors.amount_limit}</p>}
               </div>
               <div>
                 <label>Chu kỳ</label>
@@ -299,8 +328,14 @@ const SettingsPage = () => {
                 <input
                   type="date"
                   value={budgetForm.start_date}
-                  onChange={(e) => setBudgetForm((prev) => ({ ...prev, start_date: e.target.value }))}
+                  onChange={(e) => {
+                    setBudgetForm((prev) => ({ ...prev, start_date: e.target.value }));
+                    if (budgetErrors.start_date) {
+                      setBudgetErrors((prev) => ({ ...prev, start_date: '' }));
+                    }
+                  }}
                 />
+                {budgetErrors.start_date && <p className="error-text">{budgetErrors.start_date}</p>}
               </div>
             </div>
             <button

@@ -15,14 +15,43 @@ const RegisterPage = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  const validateForm = () => {
+    const errors = {};
+    if (!username.trim()) {
+      errors.username = 'Vui lòng nhập tên đăng nhập.';
+    } else if (username.trim().length < 3) {
+      errors.username = 'Tên đăng nhập tối thiểu 3 ký tự.';
+    }
+    if (!fullName.trim()) {
+      errors.fullName = 'Vui lòng nhập họ và tên.';
+    }
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      errors.email = 'Vui lòng nhập email.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      errors.email = 'Email không đúng định dạng.';
+    }
+    if (!password.trim()) {
+      errors.password = 'Vui lòng nhập mật khẩu.';
+    } else if (password.length < 6) {
+      errors.password = 'Mật khẩu cần ít nhất 6 ký tự.';
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!validateForm()) {
+      return;
+    }
     try {
-      await register(username, email, password, fullName);
+      await register(username.trim(), email.trim(), password, fullName.trim());
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Đăng ký thất bại');
@@ -68,10 +97,16 @@ const RegisterPage = () => {
                 id="username"
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="moneylover_hero"
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (fieldErrors.username) {
+                    setFieldErrors((prev) => ({ ...prev, username: '' }));
+                  }
+                }}
+                placeholder="moneywave_hero"
                 required
               />
+              {fieldErrors.username && <p className="error-text">{fieldErrors.username}</p>}
             </div>
             <div>
               <label htmlFor="fullName">Họ và tên</label>
@@ -79,9 +114,15 @@ const RegisterPage = () => {
                 id="fullName"
                 type="text"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={(e) => {
+                  setFullName(e.target.value);
+                  if (fieldErrors.fullName) {
+                    setFieldErrors((prev) => ({ ...prev, fullName: '' }));
+                  }
+                }}
                 placeholder="Nguyễn Văn A"
               />
+              {fieldErrors.fullName && <p className="error-text">{fieldErrors.fullName}</p>}
             </div>
             <div>
               <label htmlFor="email">Email</label>
@@ -89,10 +130,16 @@ const RegisterPage = () => {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (fieldErrors.email) {
+                    setFieldErrors((prev) => ({ ...prev, email: '' }));
+                  }
+                }}
                 placeholder="name@email.com"
                 required
               />
+              {fieldErrors.email && <p className="error-text">{fieldErrors.email}</p>}
             </div>
             <div>
               <label htmlFor="password">Mật khẩu</label>
@@ -100,10 +147,16 @@ const RegisterPage = () => {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) {
+                    setFieldErrors((prev) => ({ ...prev, password: '' }));
+                  }
+                }}
                 placeholder="••••••••"
                 required
               />
+              {fieldErrors.password && <p className="error-text">{fieldErrors.password}</p>}
             </div>
             <button className="button w-full" type="submit">
               Đăng ký

@@ -9,7 +9,7 @@ import {
   PointElement,
   LineElement,
 } from 'chart.js';
-import { Doughnut, Line } from 'react-chartjs-2';
+import { Doughnut, Line, Pie } from 'react-chartjs-2';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
 
@@ -43,6 +43,18 @@ const ChartSummary = ({ summary }) => {
       {
         data: expenseCategories.map((item) => item.value),
         backgroundColor: ['#1ec58f', '#0f9c6f', '#f97316', '#fcd34d', '#a855f7', '#38bdf8'],
+        borderWidth: 1,
+        borderColor: '#f8fafc',
+      },
+    ],
+  };
+
+  const incomeExpensePie = {
+    labels: ['Thu nhập', 'Chi tiêu'],
+    datasets: [
+      {
+        data: [Number(summary.totalIncome) || 0, Number(summary.totalExpense) || 0],
+        backgroundColor: ['#22c55e', '#f87171'],
         borderWidth: 1,
         borderColor: '#f8fafc',
       },
@@ -112,8 +124,8 @@ const ChartSummary = ({ summary }) => {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-3xl border border-slate-100/80 bg-white/70 p-4 shadow-inner shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900/40">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="rounded-3xl border border-slate-100/80 bg-white/70 p-4 shadow-inner shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900/40 lg:col-span-2">
           <h3 className="mb-3 text-base font-semibold text-slate-700 dark:text-slate-200">Xu hướng thu / chi</h3>
           {monthlyLabels.length ? (
             <div className="h-60">
@@ -140,6 +152,18 @@ const ChartSummary = ({ summary }) => {
           ) : (
             <p className="text-sm text-slate-500">Không có dữ liệu chi tiêu.</p>
           )}
+        </div>
+        <div className="rounded-3xl border border-slate-100/80 bg-white/70 p-4 shadow-inner shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900/40">
+          <h3 className="mb-3 text-base font-semibold text-slate-700 dark:text-slate-200">Tỷ lệ thu vs chi</h3>
+          <div className="h-60">
+            <Pie
+              data={incomeExpensePie}
+              options={{
+                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true } } },
+                maintainAspectRatio: false,
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>

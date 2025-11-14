@@ -13,14 +13,35 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const validateForm = () => {
+    const errors = {};
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      errors.email = 'Vui lòng nhập email.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      errors.email = 'Email không đúng định dạng.';
+    }
+    if (!password.trim()) {
+      errors.password = 'Vui lòng nhập mật khẩu.';
+    } else if (password.length < 6) {
+      errors.password = 'Mật khẩu cần ít nhất 6 ký tự.';
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!validateForm()) {
+      return;
+    }
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Đăng nhập thất bại');
@@ -66,10 +87,16 @@ const LoginPage = () => {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (fieldErrors.email) {
+                    setFieldErrors((prev) => ({ ...prev, email: '' }));
+                  }
+                }}
                 placeholder="name@email.com"
                 required
               />
+              {fieldErrors.email && <p className="error-text">{fieldErrors.email}</p>}
             </div>
             <div>
               <label htmlFor="password">Mật khẩu</label>
@@ -77,10 +104,16 @@ const LoginPage = () => {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) {
+                    setFieldErrors((prev) => ({ ...prev, password: '' }));
+                  }
+                }}
                 placeholder="••••••••"
                 required
               />
+              {fieldErrors.password && <p className="error-text">{fieldErrors.password}</p>}
             </div>
             <button className="button w-full" type="submit">
               Đăng nhập

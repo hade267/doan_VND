@@ -24,7 +24,6 @@ const HomePage = () => (
   <div className="space-y-12">
     <header className="grid gap-8 lg:grid-cols-2">
       <div className="space-y-6">
-        <p className="pill">MoneyLover Inspired</p>
         <h1 className="text-3xl font-semibold text-slate-900 dark:text-white sm:text-4xl">
           Quản lý chi tiêu đẹp mắt & trực quan
         </h1>

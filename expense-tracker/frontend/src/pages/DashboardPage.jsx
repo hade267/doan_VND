@@ -22,6 +22,7 @@ const DashboardPage = () => {
   const [querySummary, setQuerySummary] = useState(null);
   const [queryError, setQueryError] = useState('');
   const [queryLoading, setQueryLoading] = useState(false);
+  const [nlpInputError, setNlpInputError] = useState('');
 
   const fetchDashboardData = async (withSpinner = true) => {
     if (withSpinner) setLoading(true);
@@ -46,7 +47,24 @@ const DashboardPage = () => {
 
   const submitNlpTransaction = async ({ confirm = false } = {}) => {
     const textPayload = confirm ? nlpPendingText : nlpInput;
-    if (!textPayload.trim()) return;
+    if (!confirm) {
+      const trimmed = textPayload.trim();
+      if (!trimmed) {
+        setNlpInputError('Vui lòng nhập câu mô tả giao dịch.');
+        return;
+      }
+      if (trimmed.length < 6) {
+        setNlpInputError('Câu lệnh nên dài tối thiểu 6 ký tự để NLP hiểu đúng.');
+        return;
+      }
+      if (!looksLikeTransaction(trimmed)) {
+        setNlpInputError('Vui lòng mô tả giao dịch có số tiền hoặc danh mục cụ thể.');
+        return;
+      }
+      setNlpInputError('');
+    } else if (!textPayload.trim()) {
+      return;
+    }
     setLoading(true);
     try {
       const payload = { text: textPayload };
@@ -65,6 +83,7 @@ const DashboardPage = () => {
       }
       setBudgetAlerts(data?.budgetAlerts || []);
       setNlpInput('');
+      setNlpInputError('');
       setNlpPreview(null);
       setNlpPreviewMeta(null);
       setNlpPreviewMessage('');
@@ -271,7 +290,12 @@ const DashboardPage = () => {
           </div>
           <textarea
             value={nlpInput}
-            onChange={(e) => setNlpInput(e.target.value)}
+            onChange={(e) => {
+              setNlpInput(e.target.value);
+              if (nlpInputError) {
+                setNlpInputError('');
+              }
+            }}
             placeholder='VD: "Ăn tối cùng team 320k"'
             rows={4}
           />
@@ -280,6 +304,7 @@ const DashboardPage = () => {
               {loading ? 'Đang xử lý...' : 'Ghi lại'}
             </button>
             {error && <span className="error-text">{error}</span>}
+            {nlpInputError && <span className="error-text">{nlpInputError}</span>}
           </div>
         </div>
       </section>
@@ -341,3 +366,25 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
+  const looksLikeTransaction = (text) => {
+    const normalized = text.toLowerCase();
+    if (/\d/.test(normalized)) {
+      return true;
+    }
+    const keywords = [
+      'ăn',
+      'uống',
+      'mua',
+      'chi',
+      'thu',
+      'trả',
+      'tiền',
+      'lương',
+      'xăng',
+      'phí',
+      'đi',
+      'nhận',
+      'bán',
+    ];
+    return keywords.some((keyword) => normalized.includes(keyword));
+  };

@@ -358,12 +358,16 @@ npm run dev
 
 ## Kiểm Thử
 
+### Backend (Jest)
 ```bash
-# Backend
-cd backend && npm test
+cd backend
+npm test
+```
 
-# Frontend
-cd frontend && npm run test
+### Frontend (Vitest)
+```bash
+cd frontend
+npm test
 ```
 
 ---
