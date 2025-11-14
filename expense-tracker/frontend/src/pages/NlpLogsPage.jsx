@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { fetchLogs, updateLog, reapplyLog } from '../services/nlpService';
 
 const statusOptions = [
@@ -8,6 +8,73 @@ const statusOptions = [
 ];
 
 const formatDateTime = (value) => (value ? new Date(value).toLocaleString('vi-VN') : '');
+
+const Metric = ({ label, value, accent }) => (
+  <div className="rounded-2xl border border-white/15 bg-white/10 p-4 text-white">
+    <p className="text-sm text-white/70">{label}</p>
+    <p className="mt-1 text-2xl font-semibold">
+      {value}
+      {accent && <span className={`ml-2 align-middle text-xs ${accent}`}>realtime</span>}
+    </p>
+  </div>
+);
+
+const TimelineCard = ({ log, onOpen, onToggle, onReapply }) => (
+  <article className="card gap-4 border-l-4 border-brand/60 bg-gradient-to-br from-white via-slate-50 to-white dark:from-[#0b1120] dark:via-slate-900 dark:to-[#0b1120] sm:flex sm:items-start">
+    <div className="flex-1 space-y-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="pill bg-brand/10 text-brand">{formatDateTime(log.created_at)}</span>
+        <span className={`pill ${log.is_success ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+          {log.is_success ? 'Thành công' : 'Thất bại'}
+        </span>
+        {log.meta?.cached && <span className="pill bg-slate-200 text-slate-700">Cached</span>}
+        <span className="pill bg-slate-900/10 text-slate-600 dark:bg-slate-800 dark:text-slate-200">
+          Engine: {log.engine}
+        </span>
+      </div>
+      <p className="text-sm font-medium text-slate-900 dark:text-white">{log.input_text}</p>
+      <div className="grid gap-3 md:grid-cols-2">
+        <div>
+          <p className="eyebrow">Kết quả phân tích</p>
+          <pre className="max-h-48 overflow-auto rounded-2xl bg-slate-950/90 p-3 text-xs text-white dark:bg-slate-900">
+            {JSON.stringify(log.parsed_json, null, 2)}
+          </pre>
+        </div>
+        <div className="space-y-3">
+          <p className="eyebrow">Chỉnh sửa gần nhất</p>
+          <div className="rounded-2xl border border-slate-100/80 bg-white/60 p-3 text-sm dark:border-slate-800 dark:bg-slate-900/40">
+            {log.corrections ? (
+              <pre className="text-xs text-slate-700 dark:text-slate-200">
+                {JSON.stringify(log.corrections, null, 2)}
+              </pre>
+            ) : (
+              <span className="text-slate-500">Chưa có</span>
+            )}
+          </div>
+          {log.feedback && (
+            <div>
+              <p className="eyebrow">Feedback</p>
+              <p className="rounded-xl bg-slate-100/80 p-2 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                {log.feedback}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+    <div className="flex flex-col gap-2 sm:w-48">
+      <button className="button--ghost" type="button" onClick={onOpen}>
+        Chi tiết
+      </button>
+      <button className="button--ghost" type="button" onClick={onToggle}>
+        {log.is_success ? 'Đánh dấu lỗi' : 'Đánh dấu đúng'}
+      </button>
+      <button className="button--ghost" type="button" onClick={onReapply}>
+        Re-apply
+      </button>
+    </div>
+  </article>
+);
 
 const NlpLogsPage = () => {
   const [logs, setLogs] = useState([]);
@@ -105,153 +172,113 @@ const NlpLogsPage = () => {
     }
   };
 
+  const successCount = logs.filter((log) => log.is_success).length;
+  const failedCount = logs.length - successCount;
+
   return (
     <div className="space-y-8">
       <header className="rounded-[2rem] border border-slate-100/80 bg-gradient-to-br from-slate-900 via-slate-800 to-brand-dark p-6 text-white shadow-glass sm:p-8">
         <div className="pill bg-white/20 text-white">NLP Logs</div>
-        <h1 className="mt-4 text-3xl font-semibold">Theo dõi pipeline NLP</h1>
-        <p className="mt-2 text-white/80">
-          Giám sát và chỉnh sửa kết quả phân tích ngôn ngữ tự nhiên trong thời gian thực.
-        </p>
+        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold">Theo dõi pipeline NLP</h1>
+            <p className="mt-2 text-white/80">
+              Giám sát chi tiết các câu lệnh người dùng, đánh dấu lỗi và thực hiện re-apply ngay trong giao diện.
+            </p>
+          </div>
+          <button className="button--ghost border-white/40 text-white" onClick={loadLogs} disabled={loading}>
+            {loading ? 'Đang tải...' : 'Làm mới dữ liệu'}
+          </button>
+        </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <Metric label="Tổng log" value={total} />
+          <Metric label="Đúng" value={successCount} accent="badge--success" />
+          <Metric label="Lỗi" value={failedCount} accent="badge--danger" />
+        </div>
       </header>
 
-      <form className="card grid gap-4 md:grid-cols-[1fr_2fr_auto]" onSubmit={handleSearch}>
-        <div>
-          <label>Trạng thái</label>
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
-            {statusOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label>Tìm kiếm</label>
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Nội dung câu..."
-          />
-        </div>
-        <div className="flex items-end">
-          <button className="button w-full" type="submit" disabled={loading}>
-            {loading ? 'Đang tải...' : 'Lọc'}
-          </button>
-        </div>
-      </form>
-
-      {error && <p className="error-text">{error}</p>}
-
       <section className="card space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="eyebrow">Nhật ký</p>
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Tổng cộng {total} bản ghi</h2>
-          </div>
-          <button className="button--ghost" onClick={loadLogs} disabled={loading}>
-            Tải lại
-          </button>
-        </div>
-        <div className="table-responsive">
-          <table className="min-w-[760px]">
-            <thead>
-              <tr>
-                <th>Thời gian</th>
-                <th>Nội dung</th>
-                <th>Kết quả</th>
-                <th>Engine</th>
-                <th>Trạng thái</th>
-                <th>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((log) => (
-                <tr key={log.id}>
-                  <td>{formatDateTime(log.created_at)}</td>
-                  <td className="max-w-xs">
-                    <div className="text-sm text-slate-600 dark:text-slate-300">{log.input_text}</div>
-                    {log.meta?.cached && <span className="badge bg-slate-200 text-slate-700">cached</span>}
-                  </td>
-                  <td className="align-top">
-                    <pre className="max-h-48 overflow-auto rounded-2xl bg-slate-950/90 p-3 text-xs text-white dark:bg-slate-900">
-                      {JSON.stringify(log.parsed_json, null, 2)}
-                    </pre>
-                  </td>
-                  <td>{log.engine}</td>
-                  <td>
-                    <span className={log.is_success ? 'badge--success' : 'badge--danger'}>
-                      {log.is_success ? 'OK' : 'Lỗi'}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                      <button className="button--ghost" type="button" onClick={() => openModal(log)}>
-                        Chi tiết
-                      </button>
-                      <button className="button--ghost" type="button" onClick={() => toggleSuccess(log)}>
-                        {log.is_success ? 'Đánh dấu lỗi' : 'Đánh dấu đúng'}
-                      </button>
-                      <button className="button--ghost" type="button" onClick={() => handleReapply(log)}>
-                        Re-apply
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end">
+          <div className="flex-1">
+            <label>Trạng thái</label>
+            <div className="flex flex-wrap gap-2">
+              {statusOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={`pill ${status === opt.value ? 'bg-brand text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-white'}`}
+                  onClick={() => setStatus(opt.value)}
+                >
+                  {opt.label}
+                </button>
               ))}
-            </tbody>
-          </table>
-          {!logs.length && !loading && <p className="p-4 text-sm text-slate-500">Chưa có dữ liệu.</p>}
+            </div>
+          </div>
+          <form className="flex w-full flex-col gap-2 md:max-w-sm" onSubmit={handleSearch}>
+            <label>Tìm kiếm theo nội dung</label>
+            <div className="flex gap-2">
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ví dụ: chi cafe, nhận tiền..." />
+              <button className="button" type="submit" disabled={loading}>
+                Lọc
+              </button>
+            </div>
+          </form>
+        </div>
+        {error && <p className="error-text">{error}</p>}
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="eyebrow">Dòng thời gian</p>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Nhật ký gần nhất</h2>
+          </div>
+        </div>
+        <div className="space-y-4">
+          {logs.length === 0 && <div className="card text-sm text-slate-500">Không có log nào phù hợp với bộ lọc.</div>}
+          {logs.map((log) => (
+            <TimelineCard
+              key={log.id}
+              log={log}
+              onOpen={() => openModal(log)}
+              onToggle={() => toggleSuccess(log)}
+              onReapply={() => handleReapply(log)}
+            />
+          ))}
         </div>
       </section>
 
       {modalLog && (
-        <div className="modal-overlay">
-          <div className="modal space-y-4">
-            <div className="modal__header">
-              <div>
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Chỉnh sửa NLP Log</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-300">{modalLog.input_text}</p>
-              </div>
-              <button className="icon-button" onClick={closeModal} type="button" aria-label="Đóng">
-                ✕
-              </button>
-            </div>
-            <div className="modal__body">
+        <div className="modal">
+          <div className="modal__content space-y-4">
+            <h3 className="text-lg font-semibold">Chi tiết log</h3>
+            <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label>Danh mục</label>
-                <input
-                  value={corrections.category}
-                  onChange={(e) => setCorrections((prev) => ({ ...prev, category: e.target.value }))}
-                />
+                <input value={corrections.category} onChange={(e) => setCorrections((prev) => ({ ...prev, category: e.target.value }))} />
               </div>
               <div>
                 <label>Số tiền</label>
-                <input
-                  type="number"
-                  value={corrections.amount}
-                  onChange={(e) => setCorrections((prev) => ({ ...prev, amount: Number(e.target.value) }))}
-                />
+                <input value={corrections.amount} onChange={(e) => setCorrections((prev) => ({ ...prev, amount: e.target.value }))} />
               </div>
-              <div>
+              <div className="md:col-span-2">
                 <label>Mô tả</label>
-                <input
-                  value={corrections.description}
-                  onChange={(e) => setCorrections((prev) => ({ ...prev, description: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label>Feedback</label>
-                <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} rows={3} />
+                <input value={corrections.description} onChange={(e) => setCorrections((prev) => ({ ...prev, description: e.target.value }))} />
               </div>
             </div>
-            <div className="modal__footer">
-              <button className="button--ghost" type="button" onClick={saveCorrections}>
+            <div>
+              <label>Feedback</label>
+              <textarea rows={3} value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} />
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button className="button" type="button" onClick={saveCorrections}>
                 Lưu chỉnh sửa
               </button>
-              <button className="button" type="button" onClick={reapplyFromModal}>
-                Re-apply với chỉnh sửa
+              <button className="button--ghost" type="button" onClick={reapplyFromModal}>
+                Re-apply + Đánh dấu đúng
+              </button>
+              <button className="button--ghost" type="button" onClick={closeModal}>
+                Đóng
               </button>
             </div>
           </div>
