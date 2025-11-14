@@ -162,4 +162,28 @@
   .bottom-nav__link.is-active {
     @apply text-brand;
   }
+
+  .dashboard {
+    @apply flex flex-col gap-10;
+  }
+
+  .quick-cards {
+    @apply grid gap-6 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .quick-card {
+    @apply flex h-full flex-col justify-between rounded-3xl border border-slate-100/80 bg-white/80 p-4 shadow-sm shadow-slate-200/50 dark:border-slate-800 dark:bg-slate-900/40;
+  }
+
+  .quick-card small {
+    @apply text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400;
+  }
+
+  .quick-card strong {
+    @apply mt-2 text-3xl font-semibold text-slate-900 dark:text-white;
+  }
+
+  .quick-card__hint {
+    @apply text-xs text-slate-400 dark:text-slate-500;
+  }
 }

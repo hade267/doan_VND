@@ -141,18 +141,22 @@ const AdminUsersPage = () => {
         <div className="quick-cards">
           <div className="quick-card">
             <small>Tổng người dùng</small>
+            <p className="quick-card__hint">Toàn bộ tài khoản đã tạo</p>
             <strong>{stats.totalUsers}</strong>
           </div>
           <div className="quick-card">
             <small>Đang hoạt động</small>
+            <p className="quick-card__hint">Đã kích hoạt và đăng nhập được</p>
             <strong>{stats.activeUsers}</strong>
           </div>
           <div className="quick-card">
             <small>Ngưng hoạt động</small>
+            <p className="quick-card__hint">Đã bị khóa hoặc chưa xác thực</p>
             <strong>{stats.inactiveUsers}</strong>
           </div>
           <div className="quick-card">
             <small>Admin</small>
+            <p className="quick-card__hint">Tài khoản quản trị hệ thống</p>
             <strong>{stats.adminCount}</strong>
           </div>
         </div>
