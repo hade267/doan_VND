@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { CheckIcon } from '../components/icons';
 
 const loginFeatures = [
   'Đồng bộ giao dịch tức thì',
   'Báo cáo trực quan, dễ hiểu',
-  'Nhập giao dịch bằng ngôn ngữ tự nhiên',
+  'Nhập bằng ngôn ngữ tự nhiên',
 ];
 
 const LoginPage = () => {
@@ -28,32 +28,39 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="auth">
-      <div className="auth__hero">
-        <div className="pill">MoneyLover Inspired</div>
-        <h1>Quản lý tài chính thông minh</h1>
-        <p>Ghi lại chi tiêu, lập ngân sách và xem báo cáo trực quan mọi lúc mọi nơi.</p>
-        <ul className="auth__hero-list">
+    <div className="grid min-h-[calc(100vh-6rem)] items-center gap-8 px-4 py-10 sm:py-14 lg:grid-cols-2">
+      <div className="rounded-[2rem] border border-slate-100/80 bg-white/80 p-6 shadow-xl shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900/70 sm:p-8">
+        <div className="pill flex items-center gap-2">
+          <img src="/logo.png" alt="MoneyWave" className="h-5 w-5 rounded-xl object-contain" />
+          MoneyWave Studio
+        </div>
+        <h1 className="mt-4 text-3xl font-semibold text-slate-900 dark:text-white">Quản lý tài chính thông minh</h1>
+        <p className="mt-2 text-slate-600 dark:text-slate-300">
+          Ghi lại chi tiêu, lập ngân sách và nhận gợi ý từ trợ lý NLP mọi lúc mọi nơi.
+        </p>
+        <ul className="mt-6 space-y-3">
           {loginFeatures.map((feature) => (
-            <li key={feature}>
-              <span className="icon-badge icon-badge--ghost" aria-hidden="true">
+            <li key={feature} className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-200">
+              <span className="icon-badge bg-brand/10 text-brand">
                 <CheckIcon size={16} />
               </span>
-              <span>{feature}</span>
+              {feature}
             </li>
           ))}
         </ul>
       </div>
-      <div className="auth__card">
-        <div className="auth__panel">
-          <div className="auth__logo">
-            <img src="/logo_light.png" alt="MoneyWave" />
+      <div className="flex justify-center">
+        <div className="card w-full max-w-md space-y-6">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <img src="/logo.png" alt="MoneyWave" className="h-12" />
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Chào mừng trở lại</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-300">Đăng nhập để tiếp tục quản lý chi tiêu</p>
+            </div>
           </div>
-          <h2>Xin chào</h2>
-          <p>Đăng nhập để tiếp tục quản lý chi tiêu</p>
-          {error && <p className="error-text">{error}</p>}
-          <form onSubmit={handleSubmit}>
-            <div className="auth__form-group">
+          {error && <p className="error-text text-center">{error}</p>}
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div>
               <label htmlFor="email">Email</label>
               <input
                 id="email"
@@ -64,7 +71,7 @@ const LoginPage = () => {
                 required
               />
             </div>
-            <div className="auth__form-group">
+            <div>
               <label htmlFor="password">Mật khẩu</label>
               <input
                 id="password"
@@ -75,13 +82,16 @@ const LoginPage = () => {
                 required
               />
             </div>
-            <button className="button" type="submit">
+            <button className="button w-full" type="submit">
               Đăng nhập
             </button>
           </form>
-          <div className="auth__footer">
-            Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link>
-          </div>
+          <p className="text-center text-sm text-slate-500 dark:text-slate-300">
+            Chưa có tài khoản?{' '}
+            <Link className="font-semibold text-brand hover:text-brand-dark" to="/register">
+              Đăng ký ngay
+            </Link>
+          </p>
         </div>
       </div>
     </div>

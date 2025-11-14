@@ -5,6 +5,10 @@ const { getNlpConfig, saveNlpConfig } = require('../utils/nlpConfig');
 const { parseNaturalLanguage } = require('../utils/nlp');
 const { buildSummary } = require('./reportController');
 
+const isNlpLoggingEnabled = process.env.NODE_ENV !== 'production';
+const respondLogsDisabled = (res) =>
+  res.status(404).json({ message: 'NLP logging features are disabled in production.' });
+
 const buildLogWhereClause = (userId, status) => {
   const where = { user_id: userId };
   if (status === 'success') where.is_success = true;
@@ -97,7 +101,14 @@ const formatCurrency = (value) =>
 
 const nlpController = {
   async listLogs(req, res) {
-    const { status, limit = 20, offset = 0, q } = req.query;
+    if (!isNlpLoggingEnabled) {
+      return respondLogsDisabled(res);
+    }
+    const { status, q } = req.query;
+    const requestedLimit = Number(req.query.limit);
+    const requestedOffset = Number(req.query.offset);
+    const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 100) : 20;
+    const offset = Number.isFinite(requestedOffset) ? Math.max(requestedOffset, 0) : 0;
     try {
       const where = buildLogWhereClause(req.user.id, status);
       if (q) {
@@ -109,8 +120,8 @@ const nlpController = {
       const logs = await NlpLog.findAndCountAll({
         where,
         order: [['created_at', 'DESC']],
-        limit: Number(limit),
-        offset: Number(offset),
+        limit,
+        offset,
       });
 
       res.json({
@@ -123,6 +134,9 @@ const nlpController = {
   },
 
   async updateLog(req, res) {
+    if (!isNlpLoggingEnabled) {
+      return respondLogsDisabled(res);
+    }
     const { id } = req.params;
     const { is_success, feedback, corrections } = req.body;
 
@@ -145,6 +159,9 @@ const nlpController = {
   },
 
   async reapplyLog(req, res) {
+    if (!isNlpLoggingEnabled) {
+      return respondLogsDisabled(res);
+    }
     const { id } = req.params;
     const overrides = req.body.overrides || {};
 

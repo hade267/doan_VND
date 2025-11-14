@@ -1,6 +1,8 @@
 const { Op } = require('sequelize');
 const { NlpLog } = require('../../models');
 
+const isNlpLoggingEnabled = process.env.NODE_ENV !== 'production';
+
 const getDailyLimit = () => parseInt(process.env.NLP_AI_DAILY_LIMIT || '0', 10);
 
 const getTodayRange = () => {
@@ -13,7 +15,7 @@ const getTodayRange = () => {
 
 const enforceDailyAiLimit = async (userId) => {
   const limit = getDailyLimit();
-  if (!limit || limit <= 0) {
+  if (!limit || limit <= 0 || !isNlpLoggingEnabled) {
     return;
   }
 

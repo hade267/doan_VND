@@ -3,10 +3,6 @@ const { Op } = require('sequelize');
 const { getBudgetAlerts } = require('../utils/budget');
 const { parseNaturalLanguage } = require('../utils/nlp');
 
-const isNlpLoggingEnabled = process.env.NODE_ENV !== 'production';
-const logNlpEvent = (payload) =>
-  isNlpLoggingEnabled ? NlpLog.create(payload).catch(() => {}) : Promise.resolve();
-
 const transactionController = {
   // Create a new transaction
   async createTransaction(req, res) {
@@ -89,7 +85,7 @@ const transactionController = {
           requiresConfirmation: true,
           parsed: finalData,
           meta,
-          message: 'Xác nhận dữ liệu trước khi lưu giao dịch.',
+          message: 'X�c nh?n d? li?u tru?c khi luu giao d?ch.',
         });
       }
 
@@ -112,7 +108,7 @@ const transactionController = {
           user_id: userId,
           name: categoryName,
           type: finalData.type,
-          icon: overrides.icon || '📝',
+          icon: overrides.icon || '??',
           color: overrides.color || '#9CA3AF',
           is_default: false,
         });
@@ -127,7 +123,7 @@ const transactionController = {
         transaction_date: new Date(finalData.date || finalData.transaction_date || Date.now()),
       });
 
-      await logNlpEvent({
+      await NlpLog.create({
         user_id: userId,
         input_text: text,
         parsed_json: parsed,
@@ -157,14 +153,14 @@ const transactionController = {
         res.status(201).json({ transaction, budgetAlerts });
     } catch (error) {
       console.error('[NLP] Failed to process text', { userId, text, error: error.message });
-      await logNlpEvent({
+      await NlpLog.create({
         user_id: userId,
         input_text: text,
         parsed_json: { error: error.message },
         corrections: overrides,
         engine: 'rules',
         is_success: false,
-      });
+      }).catch(() => {});
       res.status(500).json({ message: 'Error parsing natural language input.', error: error.message });
     }
   },

@@ -13,6 +13,8 @@ import AdminUsersPage from './pages/AdminUsersPage';
 import TransactionsPage from './pages/TransactionsPage';
 import AppLayout from './components/AppLayout';
 
+const enableNlpLogs = import.meta.env.MODE !== 'production';
+
 const NotFoundPage = () => <h1>404 Not Found</h1>;
 
 // A wrapper for protected routes
@@ -46,16 +48,18 @@ function AppRoutes() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={withLayout(DashboardPage)} />
         <Route path="/transactions" element={withLayout(TransactionsPage)} />
-        <Route
-          path="/nlp-logs"
-          element={
-            <AdminRoute>
-              <AppLayout onLogout={logout}>
-                <NlpLogsPage />
-              </AppLayout>
-            </AdminRoute>
-          }
-        />
+        {enableNlpLogs && (
+          <Route
+            path="/nlp-logs"
+            element={
+              <AdminRoute>
+                <AppLayout onLogout={logout}>
+                  <NlpLogsPage />
+                </AppLayout>
+              </AdminRoute>
+            }
+          />
+        )}
         <Route
           path="/admin/users"
           element={

@@ -1,14 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  fetchCategories,
-  createCategory,
-  deleteCategory,
-} from '../services/categoryService';
-import {
-  fetchBudgets,
-  createBudget,
-  deleteBudget,
-} from '../services/budgetService';
+import { fetchCategories, createCategory, deleteCategory } from '../services/categoryService';
+import { fetchBudgets, createBudget, deleteBudget } from '../services/budgetService';
 
 const sections = [
   {
@@ -16,8 +8,8 @@ const sections = [
     description: 'Bật tắt email nhắc chi tiêu, báo cáo tuần và cảnh báo vượt ngân sách.',
   },
   {
-    title: 'Trí tuệ nhân tạo',
-    description: 'Quản lý hạn mức AI hằng ngày, chọn engine ưu tiên và xem lịch sử sử dụng.',
+    title: 'Trợ lý AI',
+    description: 'Quản lý hạn mức AI mỗi ngày, chọn engine ưu tiên và xem lịch sử sử dụng.',
   },
 ];
 
@@ -40,6 +32,7 @@ const SettingsPage = () => {
     period: 'monthly',
     start_date: new Date().toISOString().slice(0, 10),
   });
+
   const loadCategories = async () => {
     setLoading((prev) => ({ ...prev, categories: true }));
     try {
@@ -64,7 +57,6 @@ const SettingsPage = () => {
     }
   };
 
-
   useEffect(() => {
     loadCategories();
     loadBudgets();
@@ -72,7 +64,7 @@ const SettingsPage = () => {
 
   const expenseCategories = useMemo(
     () => categories.filter((item) => item.type === 'expense'),
-    [categories]
+    [categories],
   );
 
   const handleCategorySubmit = async (e) => {
@@ -142,19 +134,21 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="dashboard">
-      <div className="dashboard__header">
+    <div className="space-y-8">
+      <header className="rounded-[2rem] border border-slate-100/80 bg-gradient-to-r from-slate-900 via-slate-800 to-brand-dark p-8 text-white shadow-glass dark:border-slate-800">
+        <div className="pill bg-white/20 text-white/90">Cài đặt</div>
+        <h1 className="mt-4 text-3xl font-semibold">Tùy chỉnh trải nghiệm</h1>
+        <p className="mt-2 text-white/70">
+          Điều chỉnh ngôn ngữ, tiền tệ và hành vi thông báo phù hợp với bạn.
+        </p>
+      </header>
+
+      <section className="card space-y-6">
         <div>
-          <div className="pill">Cài đặt</div>
-          <h1>Tùy chỉnh trải nghiệm</h1>
-          <p>Điều chỉnh ngôn ngữ, tiền tệ và hành vi thông báo phù hợp với bạn.</p>
+          <p className="eyebrow">Cơ bản</p>
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Tùy chọn hiển thị</h2>
         </div>
-      </div>
-
-
-      <div className="card">
-        <h2>Cơ bản</h2>
-        <div className="settings-grid">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label>Ngôn ngữ hiển thị</label>
             <select value={language} onChange={(e) => setLanguage(e.target.value)}>
@@ -170,20 +164,25 @@ const SettingsPage = () => {
             </select>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="settings-columns">
-        <div className="card">
-          <h2>Danh mục</h2>
-          <p>Quản lý danh mục thu nhập/chi tiêu để NLP hiểu chính xác hơn.</p>
-          <form className="settings-form" onSubmit={handleCategorySubmit}>
-            <div className="settings-grid">
+      <section className="grid gap-6 lg:grid-cols-2">
+        <div className="card space-y-6">
+          <div>
+            <p className="eyebrow">Danh mục</p>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Quản lý danh mục</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-300">
+              Giúp NLP hiểu chính xác hơn khi bạn ghi chép bằng ngôn ngữ tự nhiên.
+            </p>
+          </div>
+          <form className="space-y-4" onSubmit={handleCategorySubmit}>
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label>Tên danh mục</label>
                 <input
                   value={categoryForm.name}
                   onChange={(e) => setCategoryForm((prev) => ({ ...prev, name: e.target.value }))}
-                  placeholder="Ví dụ: Ăn uống"
+                  placeholder="VD: Ăn uống"
                   required
                 />
               </div>
@@ -202,7 +201,7 @@ const SettingsPage = () => {
                 <input
                   value={categoryForm.icon}
                   onChange={(e) => setCategoryForm((prev) => ({ ...prev, icon: e.target.value }))}
-                  placeholder="Ví dụ: 🍜"
+                  placeholder="VD: 🛒"
                 />
               </div>
               <div>
@@ -214,26 +213,33 @@ const SettingsPage = () => {
                 />
               </div>
             </div>
-            <button className="button" type="submit" disabled={loading.categories}>
+            <button className="button w-full sm:w-auto" type="submit" disabled={loading.categories}>
               {loading.categories ? 'Đang lưu...' : 'Thêm danh mục'}
             </button>
           </form>
-          <div className="settings-list">
+          <div className="space-y-3">
             {loading.categories && !categories.length && <p>Đang tải danh mục...</p>}
             {categories.map((category) => (
-              <div key={category.id} className="settings-item">
+              <div
+                key={category.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100/80 p-4 dark:border-slate-800"
+              >
                 <div>
-                  <strong>
-                    {category.icon && <span className="settings-icon">{category.icon}</span>}
+                  <strong className="text-slate-900 dark:text-white">
+                    {category.icon && <span className="mr-2">{category.icon}</span>}
                     {category.name}
                   </strong>
-                  <p>
-                    Loại: {category.type === 'expense' ? 'Chi tiêu' : 'Thu nhập'} • Màu:{' '}
+                  <p className="text-sm text-slate-500 dark:text-slate-300">
+                    Loại: {category.type === 'expense' ? 'Chi tiêu' : 'Thu nhập'} · Màu:{' '}
                     <span style={{ color: category.color }}>{category.color}</span>
                   </p>
                 </div>
                 {!category.is_default && (
-                  <button className="button button--ghost" type="button" onClick={() => handleDeleteCategory(category.id)}>
+                  <button
+                    className="button--ghost"
+                    type="button"
+                    onClick={() => handleDeleteCategory(category.id)}
+                  >
                     Xóa
                   </button>
                 )}
@@ -242,11 +248,16 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        <div className="card">
-          <h2>Ngân sách</h2>
-          <p>Đặt hạn mức cho từng danh mục chi tiêu và theo dõi tiến độ.</p>
-          <form className="settings-form" onSubmit={handleBudgetSubmit}>
-            <div className="settings-grid">
+        <div className="card space-y-6">
+          <div>
+            <p className="eyebrow">Ngân sách</p>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Giới hạn chi tiêu</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-300">
+              Đặt hạn mức cho từng danh mục và theo dõi tiến độ tiêu dùng.
+            </p>
+          </div>
+          <form className="space-y-4" onSubmit={handleBudgetSubmit}>
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label>Danh mục chi tiêu</label>
                 <select
@@ -266,10 +277,9 @@ const SettingsPage = () => {
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
                   value={budgetForm.amount_limit}
                   onChange={(e) => setBudgetForm((prev) => ({ ...prev, amount_limit: e.target.value }))}
-                  placeholder="Ví dụ: 5000000"
+                  placeholder="VD: 5000000"
                 />
               </div>
               <div>
@@ -293,78 +303,100 @@ const SettingsPage = () => {
                 />
               </div>
             </div>
-            <button className="button" type="submit" disabled={loading.budgets || !expenseCategories.length}>
+            <button
+              className="button w-full sm:w-auto"
+              type="submit"
+              disabled={loading.budgets || !expenseCategories.length}
+            >
               {loading.budgets ? 'Đang lưu...' : 'Thêm ngân sách'}
             </button>
             {!expenseCategories.length && (
-              <p className="settings-hint">Cần tạo ít nhất 1 danh mục chi tiêu trước khi đặt ngân sách.</p>
+              <p className="text-sm text-slate-500">
+                Cần tạo ít nhất 1 danh mục chi tiêu trước khi đặt ngân sách.
+              </p>
             )}
           </form>
-
-          <div className="settings-list">
+          <div className="space-y-3">
             {loading.budgets && !budgets.length && <p>Đang tải ngân sách...</p>}
             {budgets.map((budget) => {
               const usage = budget.usage || {};
               const percent = Math.min(usage.percentage || 0, 999);
               const categoryName = budget.Category?.name || 'Danh mục đã xóa';
               return (
-                <div key={budget.id} className="settings-item">
-                  <div className="budget-summary">
-                    <strong>{categoryName}</strong>
-                    <p>
-                      Hạn mức:{' '}
-                      {Number(usage.limit || budget.amount_limit).toLocaleString('vi-VN', {
-                        style: 'currency',
-                        currency: 'VND',
-                      })}
-                    </p>
-                    <div className="usage-row">
-                      <span>Đã dùng:</span>
-                      <strong>
-                        {Number(usage.spent || 0).toLocaleString('vi-VN', {
+                <div
+                  key={budget.id}
+                  className="rounded-2xl border border-slate-100/80 p-4 dark:border-slate-800"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <strong className="text-slate-900 dark:text-white">{categoryName}</strong>
+                      <p className="text-sm text-slate-500 dark:text-slate-300">
+                        Hạn mức:{' '}
+                        {Number(usage.limit || budget.amount_limit).toLocaleString('vi-VN', {
                           style: 'currency',
                           currency: 'VND',
                         })}
-                      </strong>
+                      </p>
                     </div>
-                    <div className="usage-bar">
-                      <div
-                        className={`usage-bar__fill ${percent >= 100 ? 'is-danger' : percent >= 85 ? 'is-warning' : ''}`}
-                        style={{ width: `${Math.min(percent, 100)}%` }}
-                      />
-                    </div>
-                    <small>
-                      Chu kỳ: {budget.period} • {new Date(usage.window?.start || budget.start_date).toLocaleDateString()} -{' '}
-                      {new Date(usage.window?.end || budget.end_date).toLocaleDateString()}
-                    </small>
+                    <button className="button--ghost" type="button" onClick={() => handleDeleteBudget(budget.id)}>
+                      Xóa
+                    </button>
                   </div>
-                  <button className="button button--ghost" type="button" onClick={() => handleDeleteBudget(budget.id)}>
-                    Xóa
-                  </button>
+                  <div className="mt-3 flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-300">Đã dùng</span>
+                    <strong>
+                      {Number(usage.spent || 0).toLocaleString('vi-VN', {
+                        style: 'currency',
+                        currency: 'VND',
+                      })}
+                    </strong>
+                  </div>
+                  <div className="mt-2 h-3 rounded-full bg-slate-100 dark:bg-slate-800">
+                    <div
+                      className={`h-full rounded-full ${
+                        percent >= 100 ? 'bg-rose-500' : percent >= 85 ? 'bg-amber-500' : 'bg-brand'
+                      }`}
+                      style={{ width: `${Math.min(percent, 100)}%` }}
+                    />
+                  </div>
+                  <small className="mt-2 block text-xs text-slate-500 dark:text-slate-400">
+                    Chu kỳ: {budget.period} ·{' '}
+                    {new Date(usage.window?.start || budget.start_date).toLocaleDateString()} -{' '}
+                    {new Date(usage.window?.end || budget.end_date).toLocaleDateString()}
+                  </small>
                 </div>
               );
             })}
             {!budgets.length && !loading.budgets && <p>Chưa có ngân sách nào, hãy bắt đầu tạo mới.</p>}
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="card">
-        <h2>Mục nâng cao</h2>
-        <div className="settings-list">
+      <section className="card space-y-4">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Mục nâng cao</h2>
+        <div className="space-y-3">
           {sections.map((section) => (
-            <div key={section.title} className="settings-item">
+            <div
+              key={section.title}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100/80 p-4 dark:border-slate-800"
+            >
               <div>
-                <strong>{section.title}</strong>
-                <p>{section.description}</p>
+                <strong className="text-slate-900 dark:text-white">{section.title}</strong>
+                <p className="text-sm text-slate-500 dark:text-slate-300">{section.description}</p>
               </div>
-              <button className="button button--ghost">Cấu hình</button>
+              <button className="button--ghost" type="button">
+                Cấu hình
+              </button>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {formMessage && <p className="settings-message">{formMessage}</p>}
+      {formMessage && (
+        <p className="rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-brand">
+          {formMessage}
+        </p>
+      )}
     </div>
   );
 };

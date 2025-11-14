@@ -23,7 +23,7 @@ const ChartSummary = ({ summary }) => {
 
   const monthlyLabels =
     summary.monthly?.map((item) =>
-      new Date(item.month).toLocaleDateString('vi-VN', { month: 'short', year: 'numeric' })
+      new Date(item.month).toLocaleDateString('vi-VN', { month: 'short', year: 'numeric' }),
     ) || [];
   const incomeSeries = summary.monthly?.map((item) => item.income || 0) || [];
   const expenseSeries = summary.monthly?.map((item) => item.expense || 0) || [];
@@ -43,7 +43,8 @@ const ChartSummary = ({ summary }) => {
       {
         data: expenseCategories.map((item) => item.value),
         backgroundColor: ['#1ec58f', '#0f9c6f', '#f97316', '#fcd34d', '#a855f7', '#38bdf8'],
-        borderWidth: 0,
+        borderWidth: 1,
+        borderColor: '#f8fafc',
       },
     ],
   };
@@ -70,9 +71,13 @@ const ChartSummary = ({ summary }) => {
 
   const lineOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'bottom',
+        labels: {
+          usePointStyle: true,
+        },
       },
     },
     scales: {
@@ -85,38 +90,55 @@ const ChartSummary = ({ summary }) => {
   };
 
   return (
-    <div className="card">
-      <h2>Tổng quan</h2>
-      <div className="summary-grid">
-        <div className="summary-card summary-card--income">
-          <p>Thu nhập</p>
-          <strong>{formatCurrency(summary.totalIncome)}</strong>
+    <div className="card space-y-6">
+      <div>
+        <p className="eyebrow">Tổng quan</p>
+        <h2 className="text-xl font-semibold">Thống kê thu chi</h2>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl bg-brand/10 p-4">
+          <p className="text-sm text-slate-500">Thu nhập</p>
+          <p className="mt-1 text-2xl font-semibold text-brand">{formatCurrency(summary.totalIncome)}</p>
         </div>
-        <div className="summary-card summary-card--expense">
-          <p>Chi tiêu</p>
-          <strong>{formatCurrency(summary.totalExpense)}</strong>
+        <div className="rounded-2xl bg-rose-100/60 p-4 dark:bg-rose-500/20">
+          <p className="text-sm text-slate-500">Chi tiêu</p>
+          <p className="mt-1 text-2xl font-semibold text-rose-500 dark:text-rose-200">
+            {formatCurrency(summary.totalExpense)}
+          </p>
         </div>
-        <div className="summary-card summary-card--balance">
-          <p>Cân bằng</p>
-          <strong>{formatCurrency(summary.balance)}</strong>
+        <div className="rounded-2xl bg-slate-900 text-white p-4 dark:bg-slate-800">
+          <p className="text-sm text-slate-200/80">Cân bằng</p>
+          <p className="mt-1 text-2xl font-semibold">{formatCurrency(summary.balance)}</p>
         </div>
       </div>
 
-      <div className="chart-grid">
-        <div className="chart-card">
-          <h3>Xu hướng thu/chi</h3>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-3xl border border-slate-100/80 bg-white/70 p-4 shadow-inner shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900/40">
+          <h3 className="mb-3 text-base font-semibold text-slate-700 dark:text-slate-200">Xu hướng thu / chi</h3>
           {monthlyLabels.length ? (
-            <Line data={lineData} options={lineOptions} />
+            <div className="h-60">
+              <Line data={lineData} options={lineOptions} />
+            </div>
           ) : (
-            <p className="transaction-item__meta">Chưa đủ dữ liệu để vẽ biểu đồ.</p>
+            <p className="text-sm text-slate-500">Chưa đủ dữ liệu để hiển thị biểu đồ.</p>
           )}
         </div>
-        <div className="chart-card">
-          <h3>Chi tiêu theo danh mục</h3>
+        <div className="rounded-3xl border border-slate-100/80 bg-white/70 p-4 shadow-inner shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900/40">
+          <h3 className="mb-3 text-base font-semibold text-slate-700 dark:text-slate-200">Chi tiêu theo danh mục</h3>
           {expenseCategories.length ? (
-            <Doughnut data={doughnutData} options={{ plugins: { legend: { position: 'bottom' } } }} />
+            <div className="flex h-60 flex-col">
+              <div className="flex-1">
+                <Doughnut
+                  data={doughnutData}
+                  options={{
+                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true } } },
+                    maintainAspectRatio: false,
+                  }}
+                />
+              </div>
+            </div>
           ) : (
-            <p className="transaction-item__meta">Không có dữ liệu chi tiêu.</p>
+            <p className="text-sm text-slate-500">Không có dữ liệu chi tiêu.</p>
           )}
         </div>
       </div>

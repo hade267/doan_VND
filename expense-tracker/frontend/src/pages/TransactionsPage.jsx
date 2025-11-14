@@ -59,19 +59,20 @@ const TransactionsPage = () => {
     Number(amount || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
 
   return (
-    <div className="dashboard">
-      <div className="dashboard__header">
-        <div>
-          <div className="pill">Danh sách giao dịch</div>
-          <h1>Tất cả giao dịch</h1>
-          <p>Theo dõi toàn bộ thu nhập và chi tiêu của bạn.</p>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <header className="rounded-[2rem] border border-slate-100/80 bg-gradient-to-r from-brand to-emerald-500 p-8 text-white shadow-glass dark:border-emerald-400/30">
+        <div className="pill bg-white/20 text-white">Danh sách giao dịch</div>
+        <h1 className="mt-4 text-3xl font-semibold">Theo dõi toàn bộ thu chi</h1>
+        <p className="mt-2 text-white/80">Lọc theo loại, thời gian và xem tiến độ ngân sách ngay lập tức.</p>
+      </header>
 
-      <div className="card">
-        <h2>Bộ lọc</h2>
-        <form className="settings-grid" onSubmit={handleFilterSubmit}>
-          <div>
+      <section className="card space-y-4">
+        <div>
+          <p className="eyebrow">Bộ lọc</p>
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Thu hẹp giao dịch</h2>
+        </div>
+        <form className="grid gap-4 md:grid-cols-4" onSubmit={handleFilterSubmit}>
+          <div className="md:col-span-1">
             <label>Loại giao dịch</label>
             <select value={filters.type} onChange={(e) => handleFilterChange('type', e.target.value)}>
               <option value="">Tất cả</option>
@@ -95,16 +96,22 @@ const TransactionsPage = () => {
               onChange={(e) => handleFilterChange('endDate', e.target.value)}
             />
           </div>
-          <div className="card__actions card__actions--start">
-            <button className="button" type="submit" disabled={loading}>
+          <div className="flex items-end">
+            <button className="button w-full" type="submit" disabled={loading}>
               {loading ? 'Đang lọc...' : 'Áp dụng'}
             </button>
           </div>
         </form>
-      </div>
+      </section>
 
-      <div className="card">
-        <h2>Kết quả</h2>
+      <section className="card space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="eyebrow">Kết quả</p>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Giao dịch gần nhất</h2>
+          </div>
+          <span className="text-sm text-slate-500 dark:text-slate-300">Trang {page} / {totalPages}</span>
+        </div>
         {error && <p className="error-text">{error}</p>}
         <div className="table-responsive">
           <table>
@@ -129,7 +136,7 @@ const TransactionsPage = () => {
                     <td>{item.description || 'Không ghi chú'}</td>
                     <td>{item.category?.name || 'Không phân loại'}</td>
                     <td>
-                      <span className={`badge badge--${item.type === 'income' ? 'income' : 'expense'}`}>
+                      <span className={item.type === 'income' ? 'badge--income' : 'badge--expense'}>
                         {item.type === 'income' ? 'Thu' : 'Chi'}
                       </span>
                     </td>
@@ -144,15 +151,20 @@ const TransactionsPage = () => {
             </tbody>
           </table>
         </div>
-        <div className="pagination">
-          <button className="button button--ghost" type="button" disabled={page <= 1 || loading} onClick={() => loadTransactions(page - 1)}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <button
+            className="button--ghost"
+            type="button"
+            disabled={page <= 1 || loading}
+            onClick={() => loadTransactions(page - 1)}
+          >
             Trang trước
           </button>
-          <span>
-            Trang {page} / {totalPages}
+          <span className="text-sm text-slate-500 dark:text-slate-300">
+            Hiển thị {(transactions || []).length} dòng
           </span>
           <button
-            className="button button--ghost"
+            className="button--ghost"
             type="button"
             disabled={page >= totalPages || loading}
             onClick={() => loadTransactions(page + 1)}
@@ -160,7 +172,7 @@ const TransactionsPage = () => {
             Trang tiếp
           </button>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

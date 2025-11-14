@@ -16,6 +16,20 @@ const sanitizeForMatch = (text = '') =>
     .replace(/\s+/g, ' ')
     .trim();
 
+const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const keywordMatches = (normalizedText, keyword) => {
+  const normalizedKeyword = sanitizeForMatch(keyword);
+  if (!normalizedKeyword) {
+    return false;
+  }
+  if (normalizedKeyword.includes(' ')) {
+    return normalizedText.includes(normalizedKeyword);
+  }
+  const pattern = new RegExp(`(^|\\s)${escapeRegex(normalizedKeyword)}(\\s|$)`);
+  return pattern.test(normalizedText);
+};
+
 const computeAverageConfidence = (values = []) => {
   if (!values.length) return 0;
   const sum = values.reduce((acc, value) => acc + Number(value || 0), 0);
@@ -49,6 +63,7 @@ const normalizeAmountValue = (value = '') => {
 const extractAmount = (text) => {
   const normalized = normalizeText(text);
   for (const regex of amountRegexes) {
+    regex.lastIndex = 0; // reset global regex state before each exec
     const match = regex.exec(normalized);
     if (!match) continue;
     const rawNumber = match[1];
@@ -70,8 +85,6 @@ const extractAmount = (text) => {
 
 const extractCategory = (text, categories = []) => {
   const normalized = sanitizeForMatch(text);
-  const normalizeKeyword = (kw = '') => sanitizeForMatch(kw);
-
   let bestMatch = {
     name: 'Khac',
     type: 'expense',
@@ -80,10 +93,7 @@ const extractCategory = (text, categories = []) => {
 
   categories.forEach((category) => {
     const keywords = category.keywords || [];
-    const hits = keywords.filter((keyword) => {
-      const normalizedKeyword = normalizeKeyword(keyword);
-      return normalizedKeyword && normalized.includes(normalizedKeyword);
-    });
+    const hits = keywords.filter((keyword) => keywordMatches(normalized, keyword));
     if (!hits.length) {
       return;
     }

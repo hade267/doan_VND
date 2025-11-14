@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { CheckIcon } from '../components/icons';
 
 const registerFeatures = [
   'Theo dõi nhiều ví cùng lúc',
-  'Kế hoạch tiết kiệm rõ ràng',
+  'Mục tiêu tiết kiệm rõ ràng',
   'Nhắc nhở khi vượt ngân sách',
 ];
 
@@ -30,34 +30,42 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="auth">
-      <div className="auth__hero">
-        <div className="pill">Quản lý tài chính cá nhân</div>
-        <h1>Bắt đầu hành trình tiết kiệm</h1>
-        <p>Thiết lập ví, mục tiêu và để MoneyWave nhắc bạn mỗi khi chi tiêu gần chạm ngưỡng.</p>
-        <ul className="auth__hero-list">
+    <div className="grid min-h-[calc(100vh-6rem)] items-center gap-8 px-4 py-10 sm:py-14 lg:grid-cols-2">
+      <div className="rounded-[2rem] border border-slate-100/80 bg-white/80 p-6 shadow-xl shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900/70 sm:p-8">
+        <div className="pill flex items-center gap-2">
+          <img src="/logo.png" alt="MoneyWave" className="h-5 w-5 rounded-xl object-contain" />
+          MoneyWave Studio
+        </div>
+        <h1 className="mt-4 text-3xl font-semibold text-slate-900 dark:text-white">Tạo tài khoản miễn phí</h1>
+        <p className="mt-2 text-slate-600 dark:text-slate-300">
+          Lập kế hoạch, chia sẻ ví với đội nhóm và nhận cảnh báo thông minh khi sắp vượt hạn mức.
+        </p>
+        <ul className="mt-6 space-y-3">
           {registerFeatures.map((feature) => (
-            <li key={feature}>
-              <span className="icon-badge icon-badge--ghost" aria-hidden="true">
+            <li key={feature} className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-200">
+              <span className="icon-badge bg-brand/10 text-brand">
                 <CheckIcon size={16} />
               </span>
-              <span>{feature}</span>
+              {feature}
             </li>
           ))}
         </ul>
       </div>
-      <div className="auth__card">
-        <div className="auth__panel">
-          <div className="auth__logo">
-            <img src="/logo_light.png" alt="MoneyWave" />
+      <div className="flex justify-center">
+        <div className="card w-full max-w-md space-y-6">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <img src="/logo.png" alt="MoneyWave" className="h-12" />
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Bắt đầu hành trình mới</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-300">Chỉ mất 1 phút để hoàn tất</p>
+            </div>
           </div>
-          <h2>Tạo tài khoản miễn phí</h2>
-          <p>Chỉ mất 1 phút để hoàn tất</p>
-          {error && <p className="error-text">{error}</p>}
-          <form onSubmit={handleSubmit}>
-            <div className="auth__form-group">
-              <label>Tên đăng nhập</label>
+          {error && <p className="error-text text-center">{error}</p>}
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="username">Tên đăng nhập</label>
               <input
+                id="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -65,18 +73,20 @@ const RegisterPage = () => {
                 required
               />
             </div>
-            <div className="auth__form-group">
-              <label>Họ và tên</label>
+            <div>
+              <label htmlFor="fullName">Họ và tên</label>
               <input
+                id="fullName"
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Nguyễn Văn A"
               />
             </div>
-            <div className="auth__form-group">
-              <label>Email</label>
+            <div>
+              <label htmlFor="email">Email</label>
               <input
+                id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -84,9 +94,10 @@ const RegisterPage = () => {
                 required
               />
             </div>
-            <div className="auth__form-group">
-              <label>Mật khẩu</label>
+            <div>
+              <label htmlFor="password">Mật khẩu</label>
               <input
+                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -94,13 +105,16 @@ const RegisterPage = () => {
                 required
               />
             </div>
-            <button className="button" type="submit">
+            <button className="button w-full" type="submit">
               Đăng ký
             </button>
           </form>
-          <div className="auth__footer">
-            Đã có tài khoản? <Link to="/login">Đăng nhập</Link>
-          </div>
+          <p className="text-center text-sm text-slate-500 dark:text-slate-300">
+            Đã có tài khoản?{' '}
+            <Link className="font-semibold text-brand hover:text-brand-dark" to="/login">
+              Đăng nhập
+            </Link>
+          </p>
         </div>
       </div>
     </div>

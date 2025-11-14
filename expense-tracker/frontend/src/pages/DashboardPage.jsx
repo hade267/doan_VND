@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import TransactionList from '../components/TransactionList';
@@ -26,7 +26,6 @@ const DashboardPage = () => {
   const fetchDashboardData = async (withSpinner = true) => {
     if (withSpinner) setLoading(true);
     try {
-      console.log('[Dashboard] Fetching transactions & summary');
       const [transactionsRes, summaryRes] = await Promise.all([
         api.get('/transactions', { params: { limit: 5 } }),
         api.get('/reports/summary'),
@@ -34,12 +33,7 @@ const DashboardPage = () => {
       setTransactions(transactionsRes.data.transactions || []);
       setSummary(summaryRes.data || summaryRes);
       setError('');
-      console.log('[Dashboard] Data loaded', {
-        transactions: transactionsRes.data.transactions?.length,
-        summary: summaryRes.data || summaryRes,
-      });
     } catch (err) {
-      console.error('[Dashboard] Failed to load data', err);
       setError(err.response?.data?.message || 'Không thể tải dữ liệu.');
     } finally {
       if (withSpinner) setLoading(false);
@@ -55,7 +49,6 @@ const DashboardPage = () => {
     if (!textPayload.trim()) return;
     setLoading(true);
     try {
-      console.log('[Dashboard] Sending NLP text', textPayload, { confirm });
       const payload = { text: textPayload };
       if (confirm) {
         payload.confirm = true;
@@ -78,9 +71,7 @@ const DashboardPage = () => {
       setNlpPendingText('');
       await fetchDashboardData(false);
       setError('');
-      console.log('[Dashboard] NLP transaction created');
     } catch (err) {
-      console.error('[Dashboard] NLP creation failed', err);
       setError(err.response?.data?.message || 'Không thể phân tích câu lệnh.');
       setBudgetAlerts([]);
       setNlpPreview(null);
@@ -115,7 +106,6 @@ const DashboardPage = () => {
       setQueryAnswer(data?.answer || '');
       setQuerySummary(data?.summary || null);
     } catch (err) {
-      console.error('[Dashboard] NLP ask failed', err);
       setQueryError(err.response?.data?.message || 'Không thể trả lời câu hỏi.');
       setQueryAnswer('');
       setQuerySummary(null);
@@ -125,183 +115,224 @@ const DashboardPage = () => {
   };
 
   return (
-    <div className="dashboard">
-      <header className="dashboard__header">
-        <div>
-          <div className="pill">Money Lover Style</div>
-          <h1>Chào mừng trở lại!</h1>
-          <p>Nhập câu tự nhiên để MoneyWave ghi lại giao dịch giúp bạn.</p>
-        </div>
-      </header>
-
-      <div className="quick-cards">
-        <div className="quick-card">
-          <small>Số dư khả dụng</small>
-          <div className="icon-badge">
-            <WalletIcon size={18} />
+    <div className="space-y-8">
+      <section className="grid gap-6 lg:grid-cols-3">
+        <div className="rounded-[1.9rem] bg-gradient-to-br from-slate-900 via-slate-800 to-brand-dark p-6 text-white shadow-glass sm:p-8 lg:col-span-2">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="pill bg-white/15 text-white/80">Tổng quan</p>
+              <h1 className="mt-3 text-2xl font-semibold sm:text-3xl">Xin chào! Hôm nay bạn muốn ghi gì?</h1>
+              <p className="mt-2 text-white/70">
+                Theo dõi thu chi, hỏi nhanh về tài chính và ghi giao dịch chỉ với một câu.
+              </p>
+            </div>
+            <button
+              className="button--ghost border-white/40 text-white hover:border-white"
+              type="button"
+              onClick={() => navigate('/transactions')}
+            >
+              Xem giao dịch
+            </button>
           </div>
-          <strong>
-            {(summary?.balance ?? 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
-          </strong>
-        </div>
-        <div className="quick-card">
-          <small>Thu nhập tháng</small>
-          <div className="icon-badge">
-            <TrendUpIcon size={18} />
+          <div className="mt-6 grid gap-4 text-sm font-semibold text-white/90 sm:grid-cols-3">
+            <div className="rounded-2xl border border-white/20 p-4">
+              <div className="flex items-center gap-2 text-white/70">
+                <TrendUpIcon size={18} />
+                Thu nhập
+              </div>
+              <p className="mt-2 text-2xl">{formatCurrency(summary?.totalIncome)}</p>
+            </div>
+            <div className="rounded-2xl border border-white/20 p-4">
+              <div className="flex items-center gap-2 text-white/70">
+                <TrendDownIcon size={18} />
+                Chi tiêu
+              </div>
+              <p className="mt-2 text-2xl">{formatCurrency(summary?.totalExpense)}</p>
+            </div>
+            <div className="rounded-2xl border border-white/20 p-4">
+              <div className="flex items-center gap-2 text-white/70">
+                <WalletIcon size={18} />
+                Cân bằng
+              </div>
+              <p className="mt-2 text-2xl">{formatCurrency(summary?.balance)}</p>
+            </div>
           </div>
-          <strong>
-            {(summary?.totalIncome ?? 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
-          </strong>
         </div>
-        <div className="quick-card">
-          <small>Chi tiêu tháng</small>
-          <div className="icon-badge">
-            <TrendDownIcon size={18} />
-          </div>
-          <strong>
-            {(summary?.totalExpense ?? 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
-          </strong>
+        <div className="card space-y-4">
+          <p className="eyebrow">Trạng thái</p>
+          <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Tóm tắt nhanh</h3>
+          <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+            <li className="flex justify-between">
+              <span>Giao dịch gần đây</span>
+              <strong>{transactions.length || 0}</strong>
+            </li>
+            <li className="flex justify-between">
+              <span>Cảnh báo ngân sách</span>
+              <strong>{budgetAlerts.length || 0}</strong>
+            </li>
+            <li className="flex justify-between">
+              <span>Hỏi đáp NLP</span>
+              <strong>{queryAnswer ? 'Đã trả lời' : 'Chưa có'}</strong>
+            </li>
+          </ul>
         </div>
-      </div>
+      </section>
 
       {!!budgetAlerts.length && (
-        <section className="alert-panel">
-          {budgetAlerts.map((alert) => (
-            <div
-              key={alert.budgetId + alert.status}
-              className={`alert-card ${alert.status === 'exceeded' ? 'is-danger' : 'is-warning'}`}
-            >
-              <div>
-                <strong>{alert.category || 'Ngân sách'}</strong>
-                <p>{alert.message || 'Ngân sách gần đạt giới hạn.'}</p>
-              </div>
-              <div className="alert-values">
-                <span>
-                  Đã dùng:{' '}
-                  {Number(alert.spent || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
-                </span>
-                <span>
-                  Giới hạn:{' '}
-                  {Number(alert.limit || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
-                </span>
-              </div>
+        <section className="card space-y-4 border border-amber-200/70 bg-amber-50/70 dark:border-amber-500/30 dark:bg-amber-500/10">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="eyebrow text-amber-500">Ngân sách</p>
+              <h3 className="text-lg font-semibold text-amber-600 dark:text-amber-200">Cảnh báo chi tiêu</h3>
             </div>
-          ))}
-          <button className="button button--ghost alert-panel__close" type="button" onClick={() => setBudgetAlerts([])}>
-            Đã hiểu
-          </button>
+            <button className="button--ghost" type="button" onClick={() => setBudgetAlerts([])}>
+              Đã hiểu
+            </button>
+          </div>
+          <div className="space-y-3">
+            {budgetAlerts.map((alert) => (
+              <div
+                key={alert.budgetId + alert.status}
+                className="rounded-2xl border border-amber-200/80 bg-white/70 p-4 shadow-sm shadow-amber-100 dark:border-amber-500/40 dark:bg-slate-900/60"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <strong className="text-amber-600 dark:text-amber-200">{alert.category || 'Ngân sách'}</strong>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">{alert.message}</p>
+                  </div>
+                  <span
+                    className={`badge ${
+                      alert.status === 'exceeded' ? 'badge--danger' : 'badge--success'
+                    }`}
+                  >
+                    {alert.status === 'exceeded' ? 'Vượt hạn' : 'Sắp chạm hạn'}
+                  </span>
+                </div>
+                <div className="mt-3 grid gap-3 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-2">
+                  <p>Đã dùng: {formatCurrency(alert.spent)}</p>
+                  <p>Giới hạn: {formatCurrency(alert.limit)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
-      <section className="card">
-        <h2>Hỏi nhanh</h2>
-        <textarea
-          value={queryInput}
-          onChange={(e) => setQueryInput(e.target.value)}
-          placeholder="Ví dụ: tháng này tiêu bao nhiêu cho ăn uống?"
-          rows={2}
-        />
-        <div className="card__actions">
-          <button className="button button--ghost" type="button" onClick={handleAsk} disabled={queryLoading}>
-            {queryLoading ? 'Đang trả lời...' : 'Hỏi NLP'}
-          </button>
-          {queryError && <span className="error-text">{queryError}</span>}
-        </div>
-        {queryAnswer && (
-          <div className="query-result">
-            <p>{queryAnswer}</p>
-            {querySummary && (
-              <div className="query-breakdown">
-                <div>
-                  <small>Thu nhập</small>
-                  <strong>
-                    {(querySummary.totalIncome || 0).toLocaleString('vi-VN', {
-                      style: 'currency',
-                      currency: 'VND',
-                    })}
-                  </strong>
-                </div>
-                <div>
-                  <small>Chi tiêu</small>
-                  <strong>
-                    {(querySummary.totalExpense || 0).toLocaleString('vi-VN', {
-                      style: 'currency',
-                      currency: 'VND',
-                    })}
-                  </strong>
-                </div>
-                <div>
-                  <small>Số dư</small>
-                  <strong>
-                    {(querySummary.balance || 0).toLocaleString('vi-VN', {
-                      style: 'currency',
-                      currency: 'VND',
-                    })}
-                  </strong>
-                </div>
-              </div>
-            )}
+      <section className="grid gap-6 lg:grid-cols-2">
+        <div className="card space-y-4">
+          <div>
+            <p className="eyebrow">Assistant</p>
+            <h2 className="text-xl font-semibold">Hỏi nhanh</h2>
           </div>
-        )}
-      </section>
-
-      <section className="card">
-        <h2>Ghi chép nhanh</h2>
-        <textarea
-          value={nlpInput}
-          onChange={(e) => setNlpInput(e.target.value)}
-          placeholder="Ví dụ: hôm qua ăn sáng 25k ở quán cô Ba"
-          rows={3}
-        />
-        <div className="card__actions">
-          <button className="button" onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Đang xử lý...' : 'Ghi lại'}
-          </button>
-          {error && <span className="error-text">{error}</span>}
+          <textarea
+            value={queryInput}
+            onChange={(e) => setQueryInput(e.target.value)}
+            placeholder="VD: Tháng này tiêu bao nhiêu cho ăn uống?"
+            rows={3}
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <button className="button--ghost" type="button" onClick={handleAsk} disabled={queryLoading}>
+              {queryLoading ? 'Đang trả lời...' : 'Hỏi NLP'}
+            </button>
+            {queryError && <span className="error-text">{queryError}</span>}
+          </div>
+          {queryAnswer && (
+            <div className="rounded-2xl border border-slate-100/80 bg-white/70 p-4 shadow-inner shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900/40">
+              <p className="text-sm text-slate-600 dark:text-slate-200">{queryAnswer}</p>
+              {querySummary && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <small className="text-slate-500 dark:text-slate-400">Thu nhập</small>
+                    <p className="text-lg font-semibold text-brand">
+                      {formatCurrency(querySummary.totalIncome)}
+                    </p>
+                  </div>
+                  <div>
+                    <small className="text-slate-500 dark:text-slate-400">Chi tiêu</small>
+                    <p className="text-lg font-semibold text-rose-500">
+                      {formatCurrency(querySummary.totalExpense)}
+                    </p>
+                  </div>
+                  <div>
+                    <small className="text-slate-500 dark:text-slate-400">Số dư</small>
+                    <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                      {formatCurrency(querySummary.balance)}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="card space-y-4">
+          <div>
+            <p className="eyebrow">Ghi nhanh</p>
+            <h2 className="text-xl font-semibold">Nhập câu lệnh</h2>
+          </div>
+          <textarea
+            value={nlpInput}
+            onChange={(e) => setNlpInput(e.target.value)}
+            placeholder='VD: "Ăn tối cùng team 320k"'
+            rows={4}
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <button className="button" onClick={handleSubmit} disabled={loading}>
+              {loading ? 'Đang xử lý...' : 'Ghi lại'}
+            </button>
+            {error && <span className="error-text">{error}</span>}
+          </div>
         </div>
       </section>
 
       {nlpPreview && (
-        <section className="card nlp-preview">
-          <h3>Xác nhận giao dịch</h3>
-          {nlpPreviewMessage && <p className="nlp-preview__message">{nlpPreviewMessage}</p>}
-          <div className="nlp-preview__grid">
-            <div>
-              <small>Số tiền</small>
-              <strong>{formatCurrency(nlpPreview.amount)}</strong>
+        <section className="card space-y-4">
+          <div>
+            <p className="eyebrow">Xác nhận</p>
+            <h3 className="text-xl font-semibold">Kiểm tra giao dịch</h3>
+            {nlpPreviewMessage && <p className="text-sm text-slate-500">{nlpPreviewMessage}</p>}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-2xl border border-slate-100/80 p-4 dark:border-slate-800">
+              <small className="text-slate-500">Số tiền</small>
+              <p className="text-xl font-semibold">{formatCurrency(nlpPreview.amount)}</p>
             </div>
-            <div>
-              <small>Loại</small>
-              <strong className="pill">{nlpPreview.type === 'income' ? 'Thu nhập' : 'Chi tiêu'}</strong>
+            <div className="rounded-2xl border border-slate-100/80 p-4 dark:border-slate-800">
+              <small className="text-slate-500">Loại</small>
+              <p className="mt-1">
+                <span className={nlpPreview.type === 'income' ? 'badge--income' : 'badge--expense'}>
+                  {nlpPreview.type === 'income' ? 'Thu nhập' : 'Chi tiêu'}
+                </span>
+              </p>
             </div>
-            <div>
-              <small>Danh mục</small>
-              <strong>{nlpPreview.category || 'Khác'}</strong>
+            <div className="rounded-2xl border border-slate-100/80 p-4 dark:border-slate-800">
+              <small className="text-slate-500">Danh mục</small>
+              <p className="text-lg font-semibold">{nlpPreview.category || 'Khác'}</p>
             </div>
-            <div>
-              <small>Ngày giao dịch</small>
-              <strong>{nlpPreview.date}</strong>
+            <div className="rounded-2xl border border-slate-100/80 p-4 dark:border-slate-800">
+              <small className="text-slate-500">Ngày giao dịch</small>
+              <p>{nlpPreview.date}</p>
             </div>
-            <div>
-              <small>Mô tả</small>
-              <strong>{nlpPreview.description || 'Không có'}</strong>
+            <div className="rounded-2xl border border-slate-100/80 p-4 dark:border-slate-800">
+              <small className="text-slate-500">Mô tả</small>
+              <p>{nlpPreview.description || 'Không có'}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-100/80 p-4 dark:border-slate-800">
+              <small className="text-slate-500">Độ tin cậy</small>
+              <p>{(nlpPreviewMeta?.avgConfidence ?? 0).toFixed(2)}</p>
             </div>
           </div>
-          <div className="nlp-preview__meta">
-            <span>Độ tin cậy trung bình: {(nlpPreviewMeta?.avgConfidence ?? 0).toFixed(2)}</span>
-          </div>
-          <div className="card__actions">
+          <div className="flex flex-wrap gap-3">
             <button className="button" type="button" onClick={handleConfirmPreview} disabled={loading}>
               {loading ? 'Đang lưu...' : 'Lưu giao dịch'}
             </button>
-            <button className="button button--ghost" type="button" onClick={handleCancelPreview} disabled={loading}>
+            <button className="button--ghost" type="button" onClick={handleCancelPreview} disabled={loading}>
               Chỉnh lại
             </button>
           </div>
         </section>
       )}
 
-      <div className="dashboard__grid">
+      <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
         <ChartSummary summary={summary} />
         <TransactionList data={transactions} />
       </div>

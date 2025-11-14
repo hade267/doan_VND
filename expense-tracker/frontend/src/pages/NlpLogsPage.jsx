@@ -7,8 +7,7 @@ const statusOptions = [
   { label: 'Thất bại', value: 'failed' },
 ];
 
-const formatDateTime = (value) =>
-  value ? new Date(value).toLocaleString('vi-VN') : '';
+const formatDateTime = (value) => (value ? new Date(value).toLocaleString('vi-VN') : '');
 
 const NlpLogsPage = () => {
   const [logs, setLogs] = useState([]);
@@ -63,7 +62,7 @@ const NlpLogsPage = () => {
       await updateLog(log.id, { feedback: 'Re-applied', is_success: true });
       loadLogs();
     } catch (err) {
-      setError(err.response?.data?.message || 'Không thể reapply log.');
+      setError(err.response?.data?.message || 'Không thể re-apply log.');
     }
   };
 
@@ -84,7 +83,7 @@ const NlpLogsPage = () => {
     if (!modalLog) return;
     try {
       await updateLog(modalLog.id, {
-        corrections: corrections,
+        corrections,
         feedback: feedbackText,
       });
       loadLogs();
@@ -102,20 +101,21 @@ const NlpLogsPage = () => {
       loadLogs();
       closeModal();
     } catch (err) {
-      setError(err.response?.data?.message || 'Không thể reapply log.');
+      setError(err.response?.data?.message || 'Không thể re-apply log.');
     }
   };
 
   return (
-    <div className="nlp-logs">
-      <header className="nlp-logs__header">
-        <div>
-          <h1>NLP Logs</h1>
-          <p>Giám sát và chỉnh sửa kết quả phân tích ngôn ngữ tự nhiên.</p>
-        </div>
+    <div className="space-y-8">
+      <header className="rounded-[2rem] border border-slate-100/80 bg-gradient-to-br from-slate-900 via-slate-800 to-brand-dark p-6 text-white shadow-glass sm:p-8">
+        <div className="pill bg-white/20 text-white">NLP Logs</div>
+        <h1 className="mt-4 text-3xl font-semibold">Theo dõi pipeline NLP</h1>
+        <p className="mt-2 text-white/80">
+          Giám sát và chỉnh sửa kết quả phân tích ngôn ngữ tự nhiên trong thời gian thực.
+        </p>
       </header>
 
-      <form className="nlp-logs__filters" onSubmit={handleSearch}>
+      <form className="card grid gap-4 md:grid-cols-[1fr_2fr_auto]" onSubmit={handleSearch}>
         <div>
           <label>Trạng thái</label>
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -135,22 +135,27 @@ const NlpLogsPage = () => {
             placeholder="Nội dung câu..."
           />
         </div>
-        <button className="button" type="submit" disabled={loading}>
-          {loading ? 'Đang tải...' : 'Lọc'}
-        </button>
+        <div className="flex items-end">
+          <button className="button w-full" type="submit" disabled={loading}>
+            {loading ? 'Đang tải...' : 'Lọc'}
+          </button>
+        </div>
       </form>
 
       {error && <p className="error-text">{error}</p>}
 
-      <div className="card nlp-logs__table">
-        <div className="nlp-logs__summary">
-          <span>Tổng cộng: {total}</span>
-          <button className="button button--ghost" onClick={loadLogs} disabled={loading}>
+      <section className="card space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="eyebrow">Nhật ký</p>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Tổng cộng {total} bản ghi</h2>
+          </div>
+          <button className="button--ghost" onClick={loadLogs} disabled={loading}>
             Tải lại
           </button>
         </div>
         <div className="table-responsive">
-          <table>
+          <table className="min-w-[760px]">
             <thead>
               <tr>
                 <th>Thời gian</th>
@@ -165,56 +170,63 @@ const NlpLogsPage = () => {
               {logs.map((log) => (
                 <tr key={log.id}>
                   <td>{formatDateTime(log.created_at)}</td>
-                  <td>
-                    <div className="nlp-logs__text">{log.input_text}</div>
-                    {log.meta?.cached && <span className="badge">cached</span>}
+                  <td className="max-w-xs">
+                    <div className="text-sm text-slate-600 dark:text-slate-300">{log.input_text}</div>
+                    {log.meta?.cached && <span className="badge bg-slate-200 text-slate-700">cached</span>}
                   </td>
-                  <td className="nlp-logs__result">
-                    <pre>{JSON.stringify(log.parsed_json, null, 2)}</pre>
+                  <td className="align-top">
+                    <pre className="max-h-48 overflow-auto rounded-2xl bg-slate-950/90 p-3 text-xs text-white dark:bg-slate-900">
+                      {JSON.stringify(log.parsed_json, null, 2)}
+                    </pre>
                   </td>
                   <td>{log.engine}</td>
                   <td>
-                    <span className={`badge ${log.is_success ? 'badge--success' : 'badge--danger'}`}>
+                    <span className={log.is_success ? 'badge--success' : 'badge--danger'}>
                       {log.is_success ? 'OK' : 'Lỗi'}
                     </span>
                   </td>
-                  <td className="nlp-logs__actions">
-                    <button className="button button--ghost" onClick={() => openModal(log)}>
-                      Chi tiết
-                    </button>
-                    <button className="button button--ghost" onClick={() => toggleSuccess(log)}>
-                      {log.is_success ? 'Đánh dấu lỗi' : 'Đánh dấu đúng'}
-                    </button>
-                    <button className="button button--ghost" onClick={() => handleReapply(log)}>
-                      Re-apply
-                    </button>
+                  <td>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                      <button className="button--ghost" type="button" onClick={() => openModal(log)}>
+                        Chi tiết
+                      </button>
+                      <button className="button--ghost" type="button" onClick={() => toggleSuccess(log)}>
+                        {log.is_success ? 'Đánh dấu lỗi' : 'Đánh dấu đúng'}
+                      </button>
+                      <button className="button--ghost" type="button" onClick={() => handleReapply(log)}>
+                        Re-apply
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {!logs.length && !loading && <p>Chưa có dữ liệu.</p>}
+          {!logs.length && !loading && <p className="p-4 text-sm text-slate-500">Chưa có dữ liệu.</p>}
         </div>
-      </div>
+      </section>
 
       {modalLog && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal space-y-4">
             <div className="modal__header">
-              <h3>Chỉnh sửa NLP Log</h3>
-              <button className="icon-button" onClick={closeModal}>
+              <div>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Chỉnh sửa NLP Log</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-300">{modalLog.input_text}</p>
+              </div>
+              <button className="icon-button" onClick={closeModal} type="button" aria-label="Đóng">
                 ✕
               </button>
             </div>
             <div className="modal__body">
-              <div className="auth__form-group">
+              <div>
                 <label>Danh mục</label>
                 <input
                   value={corrections.category}
                   onChange={(e) => setCorrections((prev) => ({ ...prev, category: e.target.value }))}
                 />
               </div>
-              <div className="auth__form-group">
+              <div>
                 <label>Số tiền</label>
                 <input
                   type="number"
@@ -222,23 +234,23 @@ const NlpLogsPage = () => {
                   onChange={(e) => setCorrections((prev) => ({ ...prev, amount: Number(e.target.value) }))}
                 />
               </div>
-              <div className="auth__form-group">
+              <div>
                 <label>Mô tả</label>
                 <input
                   value={corrections.description}
                   onChange={(e) => setCorrections((prev) => ({ ...prev, description: e.target.value }))}
                 />
               </div>
-              <div className="auth__form-group">
+              <div>
                 <label>Feedback</label>
                 <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} rows={3} />
               </div>
             </div>
             <div className="modal__footer">
-              <button className="button button--ghost" onClick={saveCorrections}>
+              <button className="button--ghost" type="button" onClick={saveCorrections}>
                 Lưu chỉnh sửa
               </button>
-              <button className="button" onClick={reapplyFromModal}>
+              <button className="button" type="button" onClick={reapplyFromModal}>
                 Re-apply với chỉnh sửa
               </button>
             </div>

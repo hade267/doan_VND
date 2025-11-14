@@ -11,42 +11,48 @@ const TransactionList = ({ data = [] }) => {
   };
 
   return (
-    <div className="card">
-      <h2>Giao dịch gần đây</h2>
+    <div className="card space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="eyebrow">Hoạt động</p>
+          <h2 className="text-xl font-semibold">Giao dịch gần đây</h2>
+        </div>
+        <button className="button--ghost" type="button" onClick={() => navigate('/transactions')}>
+          Xem tất cả
+        </button>
+      </div>
       {!data.length ? (
-        <p className="transaction-item__meta">Chưa có giao dịch nào.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Chưa có giao dịch nào.</p>
       ) : (
-        <>
-          <div className="transaction-list__scroll">
-            <ul className="list">
-              {data.map((item) => {
-                const categoryName = item.category?.name || 'Không phân loại';
-                return (
-                  <li key={item.id} className="transaction-item">
-                    <div className="transaction-item__info">
-                      <span className="icon-badge">{renderIcon(item.type)}</span>
-                      <div>
-                        <div className="transaction-item__title">{item.description || categoryName}</div>
-                        <div className="transaction-item__meta">
-                          {new Date(item.transaction_date).toLocaleDateString()} • {categoryName}
-                        </div>
-                      </div>
-                    </div>
-                    <span className={`badge badge--${item.type === 'income' ? 'income' : 'expense'}`}>
-                      {item.type === 'income' ? '+' : '-'}
-                      {Number(item.amount).toLocaleString('vi-VN')} đ
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-          <div className="card__actions">
-            <button className="button button--ghost" type="button" onClick={() => navigate('/transactions')}>
-              Xem tất cả
-            </button>
-          </div>
-        </>
+        <ul className="space-y-3">
+          {data.map((item) => {
+            const categoryName = item.category?.name || 'Không phân loại';
+            return (
+              <li
+                key={item.id}
+                className="flex items-center justify-between rounded-2xl border border-slate-100/80 px-4 py-3 shadow-sm shadow-slate-200/60 dark:border-slate-800 dark:shadow-slate-900/20"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="icon-badge" aria-hidden="true">
+                    {renderIcon(item.type)}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                      {item.description || categoryName}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {new Date(item.transaction_date).toLocaleDateString()} · {categoryName}
+                    </p>
+                  </div>
+                </div>
+                <span className={item.type === 'income' ? 'badge--income' : 'badge--expense'}>
+                  {item.type === 'income' ? '+' : '-'}
+                  {Number(item.amount).toLocaleString('vi-VN')} ₫
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );
