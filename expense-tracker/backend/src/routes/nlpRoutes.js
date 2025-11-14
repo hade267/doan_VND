@@ -47,6 +47,7 @@ router.put(
   [
     body('incomeKeywords').optional().isArray(),
     body('expenseKeywords').optional().isArray(),
+    body('amountKeywords').optional().isArray(),
     body('categories').optional().isArray(),
   ],
   validate,

@@ -235,6 +235,7 @@ const nlpController = {
       const updated = {
         incomeKeywords: req.body.incomeKeywords || current.incomeKeywords,
         expenseKeywords: req.body.expenseKeywords || current.expenseKeywords,
+        amountKeywords: req.body.amountKeywords || current.amountKeywords,
         categories: req.body.categories || current.categories,
       };
 

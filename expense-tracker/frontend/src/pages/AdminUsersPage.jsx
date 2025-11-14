@@ -11,6 +11,7 @@ const AdminUsersPage = () => {
   const [nlpForm, setNlpForm] = useState({
     income: '',
     expense: '',
+    amount: '',
     categories: '[]',
   });
   const [nlpStatus, setNlpStatus] = useState('');
@@ -48,6 +49,7 @@ const AdminUsersPage = () => {
         setNlpForm({
           income: (data?.incomeKeywords || []).join(', '),
           expense: (data?.expenseKeywords || []).join(', '),
+          amount: (data?.amountKeywords || []).join(', '),
           categories: JSON.stringify(data?.categories || [], null, 2),
         });
         setNlpStatus('');
@@ -92,6 +94,7 @@ const AdminUsersPage = () => {
     return {
       incomeKeywords: parseKeywordInput(nlpForm.income),
       expenseKeywords: parseKeywordInput(nlpForm.expense),
+      amountKeywords: parseKeywordInput(nlpForm.amount),
       categories: categoriesPayload,
     };
   };
@@ -289,6 +292,18 @@ const AdminUsersPage = () => {
               onChange={(e) => setNlpForm((prev) => ({ ...prev, expense: e.target.value }))}
               placeholder="chi, mua, an uong..."
             />
+          </div>
+          <div>
+            <label>Từ khóa số tiền</label>
+            <textarea
+              rows={3}
+              value={nlpForm.amount}
+              onChange={(e) => setNlpForm((prev) => ({ ...prev, amount: e.target.value }))}
+              placeholder="vnd, dong, usd, ty..."
+            />
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Các từ này giúp NLP nhận diện đơn vị tiền tệ kèm theo con số.
+            </p>
           </div>
         </div>
         <div className="settings-form">

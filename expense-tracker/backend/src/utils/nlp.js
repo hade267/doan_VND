@@ -16,6 +16,11 @@ const sanitizeForMatch = (text = '') =>
     .replace(/\s+/g, ' ')
     .trim();
 
+const sanitizeUnitKeyword = (keyword = '') =>
+  normalizeText(keyword)
+    .replace(/[^a-z]/g, '')
+    .trim();
+
 const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const keywordMatches = (normalizedText, keyword) => {
@@ -36,13 +41,7 @@ const computeAverageConfidence = (values = []) => {
   return Math.max(0, Math.min(1, sum / values.length));
 };
 
-const amountRegexes = [
-  /(?:khoang|gan|hon)?\s*(\d+(?:[.,]\d+)?)(?:\s*)(trieu|tr|m|nghin|ngan|k|dong|d|vnd)?/gi,
-  /(\d{1,3}(?:[.,]\d{3})+)(?:\s*)(dong|d|vnd)?/gi,
-  /(\d+(?:[.,]\d+)?)(?=\s?vnd|\s?dong|\s?d\b)/gi,
-];
-
-const AMOUNT_MULTIPLIERS = {
+const DEFAULT_AMOUNT_MULTIPLIERS = {
   trieu: 1_000_000,
   tr: 1_000_000,
   m: 1_000_000,
@@ -53,6 +52,48 @@ const AMOUNT_MULTIPLIERS = {
   dong: 1,
   d: 1,
   vnd: 1,
+  ty: 1_000_000_000,
+};
+
+const buildAmountUnitMap = (extraKeywords = []) => {
+  const unitMap = { ...DEFAULT_AMOUNT_MULTIPLIERS };
+  extraKeywords.forEach((entry) => {
+    if (!entry) {
+      return;
+    }
+    if (typeof entry === 'string') {
+      const key = sanitizeUnitKeyword(entry);
+      if (key && !unitMap[key]) {
+        unitMap[key] = 1;
+      }
+      return;
+    }
+    if (typeof entry === 'object' && entry.keyword) {
+      const key = sanitizeUnitKeyword(entry.keyword);
+      if (!key) {
+        return;
+      }
+      const multiplier = Number(entry.multiplier);
+      if (Number.isFinite(multiplier) && multiplier > 0) {
+        unitMap[key] = multiplier;
+      } else if (!unitMap[key]) {
+        unitMap[key] = 1;
+      }
+    }
+  });
+  return unitMap;
+};
+
+const buildAmountRegexes = (unitMap) => {
+  const unitKeys = Object.keys(unitMap);
+  const unitPattern = unitKeys.length ? unitKeys.join('|') : 'vnd';
+  const optionalUnitGroup = `(${unitPattern})?`;
+  const regexes = [
+    new RegExp(`(?:khoang|gan|hon)?\s*(\d+(?:[.,]\d+)?)(?:\s*)${optionalUnitGroup}`, 'gi'),
+    new RegExp(`(\d{1,3}(?:[.,]\d{3})+)(?:\s*)${optionalUnitGroup}`, 'gi'),
+  ];
+  regexes.push(new RegExp(`(\d+(?:[.,]\d+)?)(?=\s*(${unitPattern}))`, 'gi'));
+  return regexes;
 };
 
 const normalizeAmountValue = (value = '') => {
@@ -60,9 +101,11 @@ const normalizeAmountValue = (value = '') => {
   return Number.parseFloat(sanitized);
 };
 
-const extractAmount = (text) => {
+const extractAmount = (text, amountKeywords = []) => {
   const normalized = normalizeText(text);
-  for (const regex of amountRegexes) {
+  const unitMap = buildAmountUnitMap(amountKeywords);
+  const regexes = buildAmountRegexes(unitMap);
+  for (const regex of regexes) {
     regex.lastIndex = 0; // reset global regex state before each exec
     const match = regex.exec(normalized);
     if (!match) continue;
@@ -72,11 +115,12 @@ const extractAmount = (text) => {
     if (Number.isNaN(baseValue) || baseValue <= 0) {
       continue;
     }
-    const multiplier = AMOUNT_MULTIPLIERS[unit] || 1;
+    const normalizedUnit = sanitizeUnitKeyword(unit);
+    const multiplier = unitMap[normalizedUnit] || 1;
     const amount = baseValue * multiplier;
     const confidence = Math.min(
       1,
-      0.6 + (unit ? 0.25 : 0) + (rawNumber.includes(',') || rawNumber.includes('.') ? 0.05 : 0),
+      0.6 + (normalizedUnit ? 0.25 : 0) + (rawNumber.includes(',') || rawNumber.includes('.') ? 0.05 : 0),
     );
     return { amount, confidence };
   }
@@ -217,7 +261,7 @@ const parseNaturalLanguage = (text = '') => {
   const trimmedText = text.trim();
   const categoryGuess = extractCategory(trimmedText, config.categories || []);
   const typeData = detectType(trimmedText, config, categoryGuess);
-  const amountData = extractAmount(trimmedText);
+  const amountData = extractAmount(trimmedText, config.amountKeywords || []);
   const dateData = extractDate(trimmedText);
 
   return {
