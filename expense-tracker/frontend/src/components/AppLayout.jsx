@@ -6,14 +6,16 @@ import {
   DashboardIcon,
   LogoutIcon,
   MoonIcon,
+  ReceiptIcon,
   SettingsIcon,
   ShieldIcon,
   SidebarToggleIcon,
   SunIcon,
+  TrendUpIcon,
 } from './icons';
 
 const enableNlpLogs = import.meta.env.MODE !== 'production';
-const COLLAPSED_WIDTH = 96; // px
+const COLLAPSED_WIDTH = 96;
 const EXPANDED_WIDTH = 288;
 
 const getIsMobile = () => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false);
@@ -25,6 +27,14 @@ const getInitialCollapse = () => {
   return getIsMobile();
 };
 
+const buildInitials = (user) => {
+  if (!user) return 'MW';
+  const name = user.full_name || user.username || user.email || '';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+};
+
 const AppLayout = ({ children, onLogout }) => {
   const location = useLocation();
   const { currentUser } = useAuth();
@@ -33,6 +43,7 @@ const AppLayout = ({ children, onLogout }) => {
     () => (typeof window !== 'undefined' ? localStorage.getItem('theme') || 'light' : 'light'),
   );
   const [isMobile, setIsMobile] = useState(getIsMobile);
+  const userInitials = useMemo(() => buildInitials(currentUser), [currentUser]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -58,7 +69,10 @@ const AppLayout = ({ children, onLogout }) => {
   }, [isMobile, isCollapsed]);
 
   const navItems = useMemo(() => {
-    const items = [{ to: '/dashboard', label: 'Dashboard', icon: DashboardIcon }];
+    const items = [
+      { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
+      { to: '/transactions', label: 'Giao dịch', icon: ReceiptIcon },
+    ];
     if (currentUser?.role === 'admin') {
       if (enableNlpLogs) {
         items.push({ to: '/nlp-logs', label: 'NLP Logs', icon: BrainIcon });
@@ -76,14 +90,14 @@ const AppLayout = ({ children, onLogout }) => {
       'flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold transition',
       isCollapsed ? 'justify-center' : '',
       isActive
-        ? 'bg-brand/15 text-brand'
+        ? 'bg-gradient-to-r from-brand/25 to-brand/10 text-brand shadow-lg shadow-brand/20'
         : 'text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white',
     ]
       .filter(Boolean)
       .join(' ');
 
   const sidebarClasses = [
-    'hidden lg:flex lg:flex-col lg:border-r lg:border-slate-100/80 lg:bg-white/90 lg:px-4 lg:py-6 lg:shadow-xl lg:shadow-slate-200/60 lg:backdrop-blur dark:lg:border-slate-800 dark:lg:bg-slate-900/70',
+    'hidden lg:flex lg:flex-col lg:px-4 lg:py-6 lg:backdrop-blur',
     'lg:fixed lg:inset-y-0 lg:left-0',
     'transition-all duration-200',
     isCollapsed ? 'lg:w-24' : 'lg:w-72',
@@ -94,21 +108,22 @@ const AppLayout = ({ children, onLogout }) => {
     : undefined;
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="flex min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 text-slate-900 dark:from-slate-950 dark:via-slate-950 dark:to-slate-950 dark:text-slate-100">
       {!isMobile && (
         <aside className={sidebarClasses}>
-          <div className="flex h-full flex-col overflow-hidden">
+          <div className="glass-panel flex h-full flex-col overflow-hidden p-4">
             <div className="flex items-center gap-3">
-              <img
-                src="/logo.png"
-                alt="MoneyWave"
-                className={`h-12 w-12 rounded-2xl transition-all ${isCollapsed ? 'h-10 w-10' : ''}`}
-                loading="lazy"
-              />
+              <div
+                className={`flex items-center justify-center rounded-2xl bg-brand/15 text-brand transition-all dark:bg-brand/30 dark:text-white ${isCollapsed ? 'h-10 w-10 text-base' : 'h-12 w-12 text-lg'}`}
+              >
+                {userInitials}
+              </div>
               {!isCollapsed && (
                 <div>
-                  <p className="text-lg font-semibold">MoneyWave</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Quản lý tài chính</p>
+                  <p className="text-lg font-semibold">{currentUser?.full_name || 'MoneyWave'}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {currentUser?.role === 'admin' ? 'Quản trị viên' : 'Người dùng ưu tiên'}
+                  </p>
                 </div>
               )}
             </div>
@@ -122,6 +137,11 @@ const AppLayout = ({ children, onLogout }) => {
               >
                 <SidebarToggleIcon size={18} className={`transition ${isCollapsed ? 'rotate-180' : ''}`} />
               </button>
+              {!isCollapsed && (
+                <span className="chip chip--brand">
+                  <TrendUpIcon size={16} /> Tài chính 24/7
+                </span>
+              )}
             </div>
             <nav className="mt-4 flex flex-1 flex-col gap-1 overflow-y-auto pr-1">
               {navItems.map((item) => {
@@ -143,21 +163,48 @@ const AppLayout = ({ children, onLogout }) => {
                 );
               })}
             </nav>
+            {!isCollapsed && (
+              <div className="mt-auto glass-panel bg-white/70 p-4 text-sm dark:bg-slate-900/50">
+                <p className="text-slate-500 dark:text-slate-400">Chế độ nhanh</p>
+                <div className="mt-3 flex items-center gap-2">
+                  <button className="icon-button w-full" type="button" onClick={toggleTheme} aria-label="Đổi giao diện">
+                    {theme === 'light' ? <MoonIcon size={18} /> : <SunIcon size={18} />}
+                    <span className="hidden sm:inline">{theme === 'light' ? 'Tối' : 'Sáng'}</span>
+                  </button>
+                  <button className="icon-button w-full" type="button" onClick={onLogout}>
+                    <LogoutIcon size={18} />
+                    <span className="hidden sm:inline">Thoát</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </aside>
       )}
       <div className="flex min-h-screen flex-1 flex-col" style={desktopPaddingStyle}>
-        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-slate-200/70 bg-white/90 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/70 sm:px-6 sm:py-4 lg:px-10">
+        <header className={`floating-toolbar ${isMobile ? 'mt-3' : 'mt-6'}`}>
           <div className="flex items-center gap-3">
-            {isMobile && <img src="/logo.png" alt="MoneyWave" className="h-10 w-10 rounded-2xl" />}
+            <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/15 text-base font-semibold text-brand dark:bg-brand/30 dark:text-white">
+              {userInitials}
+              <span className="absolute -bottom-1 -right-1 inline-flex rounded-full bg-emerald-500 px-1.5 text-[10px] font-semibold text-white">
+                Live
+              </span>
+            </div>
             <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Xin chào</p>
-              <p className="text-lg font-semibold">
-                {currentUser?.full_name || currentUser?.username || 'Người dùng'}
+              <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Xin chào</p>
+              <p className="text-xl font-semibold">{currentUser?.full_name || currentUser?.username || 'Người dùng'}</p>
+              <p className="text-xs text-slate-400">
+                {currentUser?.role === 'admin' ? 'Toàn quyền quản trị' : 'Ghi chép & phân tích cá nhân'}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link to="/transactions" className="chip chip--brand">
+              <ReceiptIcon size={16} /> Xem giao dịch
+            </Link>
+            <Link to="/dashboard" className="chip">
+              <TrendUpIcon size={16} /> Báo cáo nhanh
+            </Link>
             <button className="icon-button" type="button" onClick={toggleTheme} aria-label="Đổi giao diện">
               {theme === 'light' ? <MoonIcon size={18} /> : <SunIcon size={18} />}
             </button>
@@ -181,6 +228,10 @@ const AppLayout = ({ children, onLogout }) => {
               </Link>
             );
           })}
+          <button className="bottom-nav__link" type="button" onClick={toggleTheme} aria-label="Đổi giao diện">
+            {theme === 'light' ? <MoonIcon size={18} /> : <SunIcon size={18} />}
+            <span>Theme</span>
+          </button>
         </nav>
       )}
     </div>

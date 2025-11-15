@@ -1,13 +1,19 @@
 const { verifyToken } = require('../utils/jwt');
 const { User } = require('../models');
 
-const protect = async (req, res, next) => {
-  let token;
+const extractToken = (req) => {
   const authHeader = req.headers.authorization;
-
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    token = authHeader.split(' ')[1];
+    return authHeader.split(' ')[1];
   }
+  if (req.cookies?.accessToken) {
+    return req.cookies.accessToken;
+  }
+  return null;
+};
+
+const protect = async (req, res, next) => {
+  const token = extractToken(req);
 
   if (!token) {
     return res.status(401).json({ message: 'Not authorized, no token' });
@@ -24,11 +30,11 @@ const protect = async (req, res, next) => {
     });
 
     if (!currentUser) {
-        return res.status(401).json({ message: 'User belonging to this token does no longer exist.'});
+      return res.status(401).json({ message: 'User belonging to this token does no longer exist.' });
     }
 
     if (!currentUser.is_active) {
-        return res.status(403).json({ message: 'User is inactive.' });
+      return res.status(403).json({ message: 'User is inactive.' });
     }
 
     req.user = currentUser;

@@ -5,10 +5,18 @@
 @layer base {
   :root {
     color-scheme: light;
+    --brand: #6a7bff;
+    --brand-accent: #a855f7;
+    --surface: 248 250 252;
+    --glass: hsla(0, 0%, 100%, 0.86);
+    --glass-border: rgba(148, 163, 184, 0.35);
   }
 
   .dark {
     color-scheme: dark;
+    --surface: 3 6 16;
+    --glass: hsla(222, 47%, 11%, 0.7);
+    --glass-border: rgba(51, 65, 85, 0.7);
   }
 
   * {
@@ -17,6 +25,9 @@
 
   body {
     @apply min-h-screen bg-slate-50 font-inter text-slate-950 antialiased selection:bg-brand/20 dark:bg-slate-950 dark:text-slate-100;
+    background-image: radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.08), transparent 35%),
+      radial-gradient(circle at 90% 10%, rgba(236, 72, 153, 0.08), transparent 30%),
+      linear-gradient(135deg, rgba(15, 23, 42, 0.02), rgba(79, 70, 229, 0.02));
   }
 
   a {
@@ -65,7 +76,16 @@
 
 @layer components {
   .card {
-    @apply w-full overflow-hidden rounded-[1.8rem] border border-slate-100/80 bg-white/90 p-5 shadow-xl shadow-slate-200/60 backdrop-blur dark:border-slate-800 dark:bg-slate-900/70 dark:shadow-slate-900/30 sm:p-6;
+    @apply w-full overflow-hidden rounded-[1.8rem] border border-slate-100/80 bg-white/90 p-5 shadow-xl shadow-slate-200/60 backdrop-blur-lg dark:border-slate-800 dark:bg-slate-900/70 dark:shadow-slate-900/30 sm:p-6;
+  }
+
+  .glass-panel {
+    @apply rounded-3xl border border-slate-100/70 bg-white/80 p-5 shadow-xl shadow-slate-200/40 backdrop-blur-lg transition dark:border-slate-800/60 dark:bg-slate-900/60 dark:shadow-slate-900/40 lg:p-6;
+  }
+
+  .glass-panel--gradient {
+    background-image: linear-gradient(135deg, rgba(99, 102, 241, 0.95), rgba(236, 72, 153, 0.85));
+    @apply border-transparent text-white;
   }
 
   .pill {
@@ -100,6 +120,14 @@
 
   .icon-badge {
     @apply inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200/70 bg-white/80 text-brand shadow-sm shadow-slate-200 dark:border-slate-700 dark:bg-slate-900/60;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-500 shadow-sm shadow-slate-200 transition dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300;
+  }
+
+  .chip--brand {
+    @apply border-transparent bg-brand/15 text-brand dark:bg-brand/30 dark:text-white;
   }
 
   .error-text {
@@ -185,5 +213,56 @@
 
   .quick-card__hint {
     @apply text-xs text-slate-400 dark:text-slate-500;
+  }
+
+  .metric-grid {
+    @apply grid gap-5 md:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .metric-card {
+    @apply relative overflow-hidden rounded-[1.7rem] border border-slate-100/70 bg-white/90 p-5 shadow-md shadow-slate-200/60 transition hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900/60;
+  }
+
+  .metric-card::after {
+    content: '';
+    @apply absolute inset-0 rounded-[1.7rem];
+    background: radial-gradient(circle at top, rgba(99, 102, 241, 0.18), transparent 45%);
+    pointer-events: none;
+  }
+
+  .metric-card__title {
+    @apply text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400;
+  }
+
+  .metric-card__value {
+    @apply mt-3 text-3xl font-semibold text-slate-900 dark:text-white;
+  }
+
+  .metric-card__delta {
+    @apply mt-1 inline-flex items-center rounded-full bg-emerald-100/80 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded-full bg-slate-200/80 dark:bg-slate-800/60;
+  }
+
+  .skeleton--text {
+    height: 1rem;
+  }
+
+  .skeleton--title {
+    height: 1.75rem;
+  }
+
+  .skeleton--circle {
+    @apply rounded-full;
+  }
+
+  .skeleton-card {
+    @apply glass-panel space-y-4;
+  }
+
+  .floating-toolbar {
+    @apply sticky top-0 z-30 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-slate-100/80 bg-white/80 px-4 py-3 shadow-lg shadow-slate-200/50 backdrop-blur dark:border-slate-800 dark:bg-slate-900/60 dark:shadow-slate-900/30;
   }
 }

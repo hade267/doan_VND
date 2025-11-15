@@ -1,9 +1,10 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import TransactionList from '../components/TransactionList';
 import ChartSummary from '../components/ChartSummary';
-import { TrendDownIcon, TrendUpIcon, WalletIcon } from '../components/icons';
+import MetricCard from '../components/MetricCard';
+import { BrainIcon, ReceiptIcon, TrendDownIcon, TrendUpIcon, WalletIcon } from '../components/icons';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -23,6 +24,14 @@ const DashboardPage = () => {
   const [queryError, setQueryError] = useState('');
   const [queryLoading, setQueryLoading] = useState(false);
   const [nlpInputError, setNlpInputError] = useState('');
+  const assistantRef = useRef(null);
+  const nlpSectionRef = useRef(null);
+
+  const scrollToSection = (ref) => {
+    if (ref?.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const fetchDashboardData = async (withSpinner = true) => {
     if (withSpinner) setLoading(true);
@@ -116,6 +125,58 @@ const DashboardPage = () => {
   const formatCurrency = (value) =>
     Number(value || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
 
+  const metricCardsData = [
+    {
+      key: 'income',
+      title: 'Thu nhập',
+      value: formatCurrency(summary?.totalIncome),
+      hint: 'Tổng thu tháng này',
+      icon: TrendUpIcon,
+    },
+    {
+      key: 'expense',
+      title: 'Chi tiêu',
+      value: formatCurrency(summary?.totalExpense),
+      hint: 'Chi tiêu đã ghi nhận',
+      icon: TrendDownIcon,
+    },
+    {
+      key: 'balance',
+      title: 'Cân bằng',
+      value: formatCurrency(summary?.balance),
+      hint: 'Sau thu/chi',
+      icon: WalletIcon,
+    },
+    {
+      key: 'transactions',
+      title: 'Giao dịch gần đây',
+      value: `${transactions.length || 0} mục`,
+      hint: '5 bản ghi mới nhất',
+      icon: ReceiptIcon,
+    },
+  ];
+
+  const renderMetricGrid = () => {
+    if (!summary) {
+      return Array.from({ length: 4 }).map((_, index) => (
+        <div key={`metric-skeleton-${index}`} className="skeleton-card space-y-3">
+          <div className="skeleton skeleton--text w-24" />
+          <div className="skeleton skeleton--title w-32" />
+          <div className="skeleton skeleton--text w-20" />
+        </div>
+      ));
+    }
+
+    return metricCardsData.map((metric) => <MetricCard key={metric.key} {...metric} />);
+  };
+
+  const quickStats = [
+    { label: 'Giao dịch gần đây', value: transactions.length || 0 },
+    { label: 'Cảnh báo ngân sách', value: budgetAlerts.length || 0 },
+    { label: 'Hỏi đáp NLP', value: queryAnswer ? 'Đã trả lời' : 'Chưa có' },
+  ];
+  const hasAlerts = budgetAlerts.length > 0;
+
   const handleAsk = async () => {
     if (!queryInput.trim()) return;
     setQueryLoading(true);
@@ -135,70 +196,81 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-[1.9rem] bg-gradient-to-br from-slate-900 via-slate-800 to-brand-dark p-6 text-white shadow-glass sm:p-8 lg:col-span-2">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="glass-panel glass-panel--gradient text-white shadow-2xl">
+          <div className="flex flex-col gap-6">
             <div>
-              <p className="pill bg-white/15 text-white/80">Tổng quan</p>
-              <h1 className="mt-3 text-2xl font-semibold sm:text-3xl">Xin chào! Hôm nay bạn muốn ghi gì?</h1>
-              <p className="mt-2 text-white/70">
-                Theo dõi thu chi, hỏi nhanh về tài chính và ghi giao dịch chỉ với một câu.
+              <p className="pill bg-white/20 text-white/80">MoneyWave v2</p>
+              <h1 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
+                Điều phối tài chính với trải nghiệm đậm chất tương lai.
+              </h1>
+              <p className="mt-2 text-white/80">
+                Dark mode nhất quán, dashboard modular và trợ lý NLP đa tầng giúp ghi nhanh, phân tích sâu và
+                kiểm soát ngân sách mọi lúc.
               </p>
             </div>
-            <button
-              className="button--ghost border-white/40 text-white hover:border-white"
-              type="button"
-              onClick={() => navigate('/transactions')}
-            >
-              Xem giao dịch
-            </button>
-          </div>
-          <div className="mt-6 grid gap-4 text-sm font-semibold text-white/90 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/20 p-4">
-              <div className="flex items-center gap-2 text-white/70">
-                <TrendUpIcon size={18} />
-                Thu nhập
-              </div>
-              <p className="mt-2 text-2xl">{formatCurrency(summary?.totalIncome)}</p>
-            </div>
-            <div className="rounded-2xl border border-white/20 p-4">
-              <div className="flex items-center gap-2 text-white/70">
-                <TrendDownIcon size={18} />
-                Chi tiêu
-              </div>
-              <p className="mt-2 text-2xl">{formatCurrency(summary?.totalExpense)}</p>
-            </div>
-            <div className="rounded-2xl border border-white/20 p-4">
-              <div className="flex items-center gap-2 text-white/70">
-                <WalletIcon size={18} />
-                Cân bằng
-              </div>
-              <p className="mt-2 text-2xl">{formatCurrency(summary?.balance)}</p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                className="button bg-white text-brand hover:-translate-y-0.5"
+                type="button"
+                onClick={() => scrollToSection(nlpSectionRef)}
+              >
+                <ReceiptIcon size={16} />
+                Ghi nhanh giao dịch
+              </button>
+              <button
+                className="button--ghost border-white/60 text-white hover:border-white"
+                type="button"
+                onClick={() => scrollToSection(assistantRef)}
+              >
+                <BrainIcon size={16} />
+                Hỏi NLP
+              </button>
+              <button
+                className="button--ghost border-white/30 text-white hover:border-white/80"
+                type="button"
+                onClick={() => navigate('/transactions')}
+              >
+                <WalletIcon size={16} />
+                Quản lý giao dịch
+              </button>
             </div>
           </div>
         </div>
-        <div className="card space-y-4">
-          <p className="eyebrow">Trạng thái</p>
-          <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Tóm tắt nhanh</h3>
+        <div className="glass-panel space-y-5">
+          <div>
+            <p className="eyebrow">Trạng thái</p>
+            <h3 className="text-xl font-semibold">Nhịp độ tài chính</h3>
+          </div>
           <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
-            <li className="flex justify-between">
-              <span>Giao dịch gần đây</span>
-              <strong>{transactions.length || 0}</strong>
-            </li>
-            <li className="flex justify-between">
-              <span>Cảnh báo ngân sách</span>
-              <strong>{budgetAlerts.length || 0}</strong>
-            </li>
-            <li className="flex justify-between">
-              <span>Hỏi đáp NLP</span>
-              <strong>{queryAnswer ? 'Đã trả lời' : 'Chưa có'}</strong>
-            </li>
+            {quickStats.map((item) => (
+              <li
+                key={item.label}
+                className="flex items-center justify-between rounded-2xl bg-slate-50/70 px-4 py-3 shadow-inner shadow-white/20 dark:bg-slate-900/50"
+              >
+                <span>{item.label}</span>
+                <strong className="text-base text-slate-900 dark:text-white">{item.value}</strong>
+              </li>
+            ))}
           </ul>
+          <div className="flex flex-wrap gap-3">
+            <button className="button" type="button" onClick={() => fetchDashboardData()}>
+              Làm mới dữ liệu
+            </button>
+            <button className="button--ghost" type="button" onClick={() => scrollToSection(nlpSectionRef)}>
+              Ghi giao dịch
+            </button>
+            <button className="button--ghost" type="button" onClick={() => scrollToSection(assistantRef)}>
+              Hỏi trợ lý
+            </button>
+          </div>
         </div>
       </section>
 
-      {!!budgetAlerts.length && (
-        <section className="card space-y-4 border border-amber-200/70 bg-amber-50/70 dark:border-amber-500/30 dark:bg-amber-500/10">
+      <section className="metric-grid">{renderMetricGrid()}</section>
+
+      {hasAlerts && (
+        <section className="glass-panel space-y-4 border border-amber-200/70 bg-amber-50/70 dark:border-amber-500/30 dark:bg-amber-500/10">
           <div className="flex items-center justify-between">
             <div>
               <p className="eyebrow text-amber-500">Ngân sách</p>
@@ -238,7 +310,7 @@ const DashboardPage = () => {
       )}
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <div className="card space-y-4">
+        <div ref={assistantRef} className="glass-panel space-y-4">
           <div>
             <p className="eyebrow">Assistant</p>
             <h2 className="text-xl font-semibold">Hỏi nhanh</h2>
@@ -283,7 +355,7 @@ const DashboardPage = () => {
             </div>
           )}
         </div>
-        <div className="card space-y-4">
+        <div ref={nlpSectionRef} className="glass-panel space-y-4">
           <div>
             <p className="eyebrow">Ghi nhanh</p>
             <h2 className="text-xl font-semibold">Nhập câu lệnh</h2>
@@ -310,7 +382,7 @@ const DashboardPage = () => {
       </section>
 
       {nlpPreview && (
-        <section className="card space-y-4">
+        <section className="glass-panel space-y-4">
           <div>
             <p className="eyebrow">Xác nhận</p>
             <h3 className="text-xl font-semibold">Kiểm tra giao dịch</h3>
@@ -358,8 +430,20 @@ const DashboardPage = () => {
       )}
 
       <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-        <ChartSummary summary={summary} />
-        <TransactionList data={transactions} />
+        <div className="glass-panel overflow-hidden">
+          {summary ? (
+            <ChartSummary summary={summary} />
+          ) : (
+            <div className="skeleton-card h-64 space-y-4">
+              <div className="skeleton skeleton--title w-40" />
+              <div className="skeleton skeleton--text w-full" />
+              <div className="skeleton skeleton--text w-3/4" />
+            </div>
+          )}
+        </div>
+        <div className="glass-panel">
+          <TransactionList data={transactions} />
+        </div>
       </div>
     </div>
   );

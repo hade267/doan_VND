@@ -5,6 +5,7 @@ const Transaction = require('./transaction');
 const Budget = require('./budget');
 const DefaultCategory = require('./defaultCategory');
 const NlpLog = require('./nlpLog');
+const UserSession = require('./userSession');
 
 // Định nghĩa các mối quan hệ (associations)
 
@@ -72,6 +73,17 @@ NlpLog.belongsTo(Transaction, {
   foreignKey: 'transaction_id',
 });
 
+// User -> UserSession (One-to-Many)
+User.hasMany(UserSession, {
+  foreignKey: 'user_id',
+  onDelete: 'CASCADE',
+  as: 'sessions',
+});
+UserSession.belongsTo(User, {
+  foreignKey: 'user_id',
+  as: 'user',
+});
+
 // Sync database models
 const syncModels = async () => {
   try {
@@ -95,5 +107,6 @@ module.exports = {
   Budget,
   DefaultCategory,
   NlpLog,
+  UserSession,
   syncModels,
 };

@@ -19,13 +19,13 @@ const NotFoundPage = () => <h1>404 Not Found</h1>;
 
 // A wrapper for protected routes
 function ProtectedRoute({ children }) {
-  const { token } = useAuth();
-  return token ? children : <Navigate to="/login" />;
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" />;
 }
 
 function AdminRoute({ children }) {
-  const { token, currentUser } = useAuth();
-  if (!token) return <Navigate to="/login" />;
+  const { isAuthenticated, currentUser } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" />;
   if (currentUser?.role !== 'admin') {
     return <Navigate to="/dashboard" />;
   }
@@ -33,7 +33,7 @@ function AdminRoute({ children }) {
 }
 
 function AppRoutes() {
-  const { token, logout } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const withLayout = (Component) => (
     <ProtectedRoute>
       <AppLayout onLogout={logout}>
@@ -43,7 +43,7 @@ function AppRoutes() {
   );
   return (
      <Routes>
-        <Route path="/" element={token ? <Navigate to="/dashboard" /> : <HomePage />} />
+         <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={withLayout(DashboardPage)} />

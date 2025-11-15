@@ -2,20 +2,28 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
+const crypto = require('crypto');
 const { rateLimit } = require('express-rate-limit');
 const { verifyToken } = require('./utils/jwt');
+const buildCspDirectives = require('./config/csp');
 
-// Import middleware xử lý lỗi (Giả sử bạn đặt tên tệp là errorMiddleware.js)
 const errorHandler = require('./middleware/errorMiddleware');
 
 const app = express();
 app.set('trust proxy', 1);
 
-// Middleware
-const allowedOrigins = (process.env.CORS_ORIGINS || '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const allowedOrigins = Array.from(
+  new Set(
+    [
+      ...(process.env.CORS_ORIGINS || '')
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+      process.env.FRONTEND_URL?.trim(),
+    ].filter(Boolean),
+  ),
+);
 
 const corsOptions = {
   origin: allowedOrigins.length
@@ -37,16 +45,35 @@ app.use(
     crossOriginResourcePolicy: { policy: 'same-site' },
   }),
 );
+app.use(helmet.contentSecurityPolicy(buildCspDirectives()));
 app.use(morgan('dev'));
+app.use(cookieParser(process.env.COOKIE_SECRET || undefined));
+app.use((req, res, next) => {
+  if (!req.id) {
+    req.id = crypto.randomUUID();
+  }
+  res.setHeader('X-Request-Id', req.id);
+  next();
+});
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-const isAuthenticatedRequest = (req) => {
+const getAccessTokenFromRequest = (req) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.split(' ')[1];
+  }
+  if (req.cookies?.accessToken) {
+    return req.cookies.accessToken;
+  }
+  return null;
+};
+
+const isAuthenticatedRequest = (req) => {
+  const token = getAccessTokenFromRequest(req);
+  if (!token) {
     return false;
   }
-  const token = authHeader.split(' ')[1];
   const decoded = verifyToken(token);
   return Boolean(decoded);
 };
