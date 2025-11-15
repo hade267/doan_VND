@@ -1,5 +1,5 @@
 const { Op, literal } = require('sequelize');
-const { User, Transaction } = require('../models');
+const { User, Transaction, AuditLog } = require('../models');
 
 const buildUserWhere = ({ q, role, status }) => {
   const where = {};
@@ -133,6 +133,43 @@ const adminController = {
         inactiveUsers: totalUsers - activeUsers,
         adminCount,
         recentTransactions,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async listAuditLogs(req, res, next) {
+    try {
+      const {
+        page = 1,
+        limit = 50,
+        userId,
+        action,
+      } = req.query;
+
+      const where = {};
+      if (userId) {
+        where.user_id = userId;
+      }
+      if (action) {
+        where.action = { [Op.iLike]: `%${action}%` };
+      }
+
+      const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
+      const pageSize = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
+      const offset = (pageNumber - 1) * pageSize;
+
+      const { rows, count } = await AuditLog.findAndCountAll({
+        where,
+        order: [['created_at', 'DESC']],
+        limit: pageSize,
+        offset,
+      });
+
+      res.json({
+        total: count,
+        items: rows,
       });
     } catch (error) {
       next(error);

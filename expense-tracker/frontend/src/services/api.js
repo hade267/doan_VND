@@ -7,7 +7,27 @@ const api = axios.create({
   withCredentials: true,
 });
 
+let csrfToken = null;
+let csrfPromise = null;
 let refreshPromise = null;
+
+const SAFE_METHODS = new Set(['get', 'head', 'options']);
+
+const fetchCsrfToken = async () => {
+  if (!csrfPromise) {
+    csrfPromise = api
+      .get('/security/csrf-token')
+      .then((response) => {
+        csrfToken = response.data?.csrfToken || null;
+        return csrfToken;
+      })
+      .finally(() => {
+        csrfPromise = null;
+      });
+  }
+
+  return csrfPromise;
+};
 
 const refreshSession = async () => {
   if (!refreshPromise) {
@@ -19,6 +39,23 @@ const refreshSession = async () => {
   }
   return refreshPromise;
 };
+
+api.interceptors.request.use(
+  async (config) => {
+    const method = (config.method || 'get').toLowerCase();
+    if (!SAFE_METHODS.has(method)) {
+      if (!csrfToken) {
+        await fetchCsrfToken();
+      }
+      if (csrfToken) {
+        // eslint-disable-next-line no-param-reassign
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
 
 api.interceptors.response.use(
   (response) => response,

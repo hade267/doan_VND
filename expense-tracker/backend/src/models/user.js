@@ -46,6 +46,18 @@ User.init({
     type: DataTypes.BOOLEAN,
     defaultValue: true,
   },
+  two_factor_secret: {
+    type: DataTypes.STRING(128),
+    allowNull: true,
+  },
+  two_factor_temp_secret: {
+    type: DataTypes.STRING(128),
+    allowNull: true,
+  },
+  two_factor_enabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
 }, {
   sequelize,
   modelName: 'User',

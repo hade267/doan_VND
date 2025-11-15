@@ -15,6 +15,7 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
+  const [twoFactorSession, setTwoFactorSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const hydrateSession = useCallback(async () => {
@@ -24,6 +25,7 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(data.user);
     } catch (error) {
       setCurrentUser(null);
+      setTwoFactorSession(null);
     } finally {
       setLoading(false);
     }
@@ -35,7 +37,25 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
+    if (data.requiresTwoFactor) {
+      setTwoFactorSession({ token: data.twoFactorToken });
+      return { requiresTwoFactor: true };
+    }
+    setTwoFactorSession(null);
     setCurrentUser(data.user);
+    return data;
+  };
+
+  const verifyTwoFactor = async (code) => {
+    if (!twoFactorSession?.token) {
+      throw new Error('Không có phiên 2FA nào cần xác thực');
+    }
+    const { data } = await api.post('/auth/verify-2fa', {
+      token: twoFactorSession.token,
+      code,
+    });
+    setCurrentUser(data.user);
+    setTwoFactorSession(null);
     return data;
   };
 
@@ -55,17 +75,26 @@ export const AuthProvider = ({ children }) => {
       await api.post('/auth/logout');
     } finally {
       setCurrentUser(null);
+      setTwoFactorSession(null);
     }
+  };
+
+  const updateCurrentUser = (nextUser) => {
+    setCurrentUser(nextUser);
   };
 
   const value = {
     currentUser,
     isAuthenticated: Boolean(currentUser),
+    twoFactorRequired: Boolean(twoFactorSession),
+    twoFactorToken: twoFactorSession?.token || null,
     loading,
     login,
+    verifyTwoFactor,
     register,
     logout,
     refresh: hydrateSession,
+    updateCurrentUser,
   };
 
   return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;

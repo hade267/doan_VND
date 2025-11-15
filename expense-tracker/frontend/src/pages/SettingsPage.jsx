@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import { fetchCategories, createCategory, deleteCategory } from '../services/categoryService';
 import { fetchBudgets, createBudget, deleteBudget } from '../services/budgetService';
 
@@ -33,6 +35,16 @@ const SettingsPage = () => {
     start_date: new Date().toISOString().slice(0, 10),
   });
   const [budgetErrors, setBudgetErrors] = useState({});
+  const { currentUser, updateCurrentUser } = useAuth();
+  const [twoFactorState, setTwoFactorState] = useState({
+    enabled: Boolean(currentUser?.twoFactorEnabled),
+    loading: false,
+    qrCode: null,
+    secret: null,
+    otpauthUrl: null,
+  });
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorMessage, setTwoFactorMessage] = useState('');
 
   const loadCategories = async () => {
     setLoading((prev) => ({ ...prev, categories: true }));
@@ -58,10 +70,91 @@ const SettingsPage = () => {
     }
   };
 
+  const beginTwoFactorSetup = async () => {
+    setTwoFactorMessage('');
+    setTwoFactorCode('');
+    setTwoFactorState((prev) => ({ ...prev, loading: true }));
+    try {
+      const { data } = await api.post('/auth/2fa/setup');
+      setTwoFactorState((prev) => ({
+        ...prev,
+        loading: false,
+        qrCode: data.qrCode,
+        secret: data.secret,
+        otpauthUrl: data.otpauthUrl,
+      }));
+    } catch (error) {
+      setTwoFactorMessage(error.response?.data?.message || 'Không thể khởi tạo 2FA.');
+      setTwoFactorState((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
+  const confirmEnableTwoFactor = async (e) => {
+    e.preventDefault();
+    if (!twoFactorCode.trim()) {
+      setTwoFactorMessage('Vui lòng nhập mã xác thực.');
+      return;
+    }
+    setTwoFactorMessage('');
+    setTwoFactorState((prev) => ({ ...prev, loading: true }));
+    try {
+      const { data } = await api.post('/auth/2fa/enable', { code: twoFactorCode.trim() });
+      updateCurrentUser(data.user);
+      setTwoFactorState({
+        enabled: true,
+        loading: false,
+        qrCode: null,
+        secret: null,
+        otpauthUrl: null,
+      });
+      setTwoFactorCode('');
+      setTwoFactorMessage('Đã bật xác thực 2 yếu tố.');
+    } catch (error) {
+      setTwoFactorMessage(error.response?.data?.message || 'Không thể bật 2FA.');
+      setTwoFactorState((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleDisableTwoFactor = async (e) => {
+    e.preventDefault();
+    if (!twoFactorCode.trim()) {
+      setTwoFactorMessage('Vui lòng nhập mã xác thực.');
+      return;
+    }
+    setTwoFactorMessage('');
+    setTwoFactorState((prev) => ({ ...prev, loading: true }));
+    try {
+      const { data } = await api.post('/auth/2fa/disable', { code: twoFactorCode.trim() });
+      updateCurrentUser(data.user);
+      setTwoFactorState({
+        enabled: false,
+        loading: false,
+        qrCode: null,
+        secret: null,
+        otpauthUrl: null,
+      });
+      setTwoFactorCode('');
+      setTwoFactorMessage('Đã tắt xác thực 2 yếu tố.');
+    } catch (error) {
+      setTwoFactorMessage(error.response?.data?.message || 'Không thể tắt 2FA.');
+      setTwoFactorState((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
   useEffect(() => {
     loadCategories();
     loadBudgets();
   }, []);
+
+  useEffect(() => {
+    setTwoFactorState((prev) => ({
+      ...prev,
+      enabled: Boolean(currentUser?.twoFactorEnabled),
+      qrCode: null,
+      secret: null,
+      otpauthUrl: null,
+    }));
+  }, [currentUser?.twoFactorEnabled]);
 
   const expenseCategories = useMemo(
     () => categories.filter((item) => item.type === 'expense'),
@@ -159,6 +252,117 @@ const SettingsPage = () => {
           Điều chỉnh ngôn ngữ, tiền tệ và hành vi thông báo phù hợp với bạn.
         </p>
       </header>
+
+      <section className="card space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="eyebrow">Bảo mật</p>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+              Xác thực hai yếu tố (2FA)
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-300">
+              Bật 2FA để yêu cầu mã OTP từ ứng dụng Google Authenticator hoặc tương đương mỗi lần đăng nhập.
+            </p>
+          </div>
+          <span
+            className={`badge ${twoFactorState.enabled ? 'badge--success' : 'badge--danger'}`}
+          >
+            {twoFactorState.enabled ? 'Đang bật' : 'Đang tắt'}
+          </span>
+        </div>
+        {twoFactorMessage && (
+          <p className="text-sm font-semibold text-amber-600 dark:text-amber-300">{twoFactorMessage}</p>
+        )}
+        {twoFactorState.enabled ? (
+          <form className="space-y-4" onSubmit={handleDisableTwoFactor}>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Nếu muốn tắt 2FA, nhập mã OTP hiện tại để xác nhận.
+            </p>
+            <div>
+              <label>Mã OTP hiện tại</label>
+              <input
+                value={twoFactorCode}
+                onChange={(e) => setTwoFactorCode(e.target.value)}
+                placeholder="123456"
+                required
+              />
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button className="button--ghost" type="submit" disabled={twoFactorState.loading}>
+                {twoFactorState.loading ? 'Đang xử lý...' : 'Tắt 2FA'}
+              </button>
+              <button
+                className="button"
+                type="button"
+                onClick={() => beginTwoFactorSetup()}
+                disabled={twoFactorState.loading}
+              >
+                Tạo mã mới
+              </button>
+            </div>
+          </form>
+        ) : twoFactorState.qrCode ? (
+          <form className="space-y-4" onSubmit={confirmEnableTwoFactor}>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Quét QR bằng ứng dụng 2FA rồi nhập mã OTP để hoàn tất.
+            </p>
+            <div className="flex flex-wrap items-center gap-6">
+              <img
+                src={twoFactorState.qrCode}
+                alt="Mã QR 2FA"
+                className="h-40 w-40 rounded-2xl border border-slate-100/80 bg-white/80 p-3 shadow-inner dark:border-slate-800 dark:bg-slate-900/60"
+              />
+              <div className="space-y-2 text-sm text-slate-500 dark:text-slate-300">
+                <p>Mã bí mật: <span className="font-semibold text-slate-700 dark:text-white">{twoFactorState.secret}</span></p>
+                <p>Ứng dụng đề xuất: Google Authenticator, 1Password, Authy...</p>
+              </div>
+            </div>
+            <div>
+              <label>Mã OTP</label>
+              <input
+                value={twoFactorCode}
+                onChange={(e) => setTwoFactorCode(e.target.value)}
+                placeholder="123456"
+                required
+              />
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button className="button" type="submit" disabled={twoFactorState.loading}>
+                {twoFactorState.loading ? 'Đang kích hoạt...' : 'Bật 2FA'}
+              </button>
+              <button
+                className="button--ghost"
+                type="button"
+                onClick={() => {
+                  setTwoFactorState((prev) => ({
+                    ...prev,
+                    qrCode: null,
+                    secret: null,
+                    otpauthUrl: null,
+                  }));
+                  setTwoFactorCode('');
+                }}
+              >
+                Hủy
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p className="text-sm text-slate-500 dark:text-slate-300">
+              Chưa bật 2FA. Khuyến nghị bật để bảo vệ tài khoản tốt hơn.
+            </p>
+            <button
+              className="button"
+              type="button"
+              onClick={beginTwoFactorSetup}
+              disabled={twoFactorState.loading}
+            >
+              {twoFactorState.loading ? 'Đang chuẩn bị...' : 'Bắt đầu bật 2FA'}
+            </button>
+          </div>
+        )}
+      </section>
 
       <section className="card space-y-6">
         <div>

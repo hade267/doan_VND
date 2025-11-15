@@ -14,7 +14,10 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
-  const { login } = useAuth();
+  const [awaitingTwoFactor, setAwaitingTwoFactor] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorError, setTwoFactorError] = useState('');
+  const { login, verifyTwoFactor } = useAuth();
   const navigate = useNavigate();
 
   const validateForm = () => {
@@ -37,14 +40,33 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setTwoFactorError('');
     if (!validateForm()) {
       return;
     }
     try {
-      await login(email.trim(), password);
+      const response = await login(email.trim(), password);
+      if (response?.requiresTwoFactor) {
+        setAwaitingTwoFactor(true);
+        setTwoFactorCode('');
+        return;
+      }
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Đăng nhập thất bại');
+    }
+  };
+
+  const handleTwoFactorSubmit = async (e) => {
+    e.preventDefault();
+    setTwoFactorError('');
+    try {
+      await verifyTwoFactor(twoFactorCode.trim());
+      setAwaitingTwoFactor(false);
+      setTwoFactorCode('');
+      navigate('/dashboard');
+    } catch (err) {
+      setTwoFactorError(err.response?.data?.message || 'Mã xác thực không hợp lệ.');
     }
   };
 
@@ -80,45 +102,79 @@ const LoginPage = () => {
             </div>
           </div>
           {error && <p className="error-text text-center">{error}</p>}
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div>
-              <label htmlFor="email">Email</label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (fieldErrors.email) {
-                    setFieldErrors((prev) => ({ ...prev, email: '' }));
-                  }
+          {awaitingTwoFactor ? (
+            <form className="space-y-4" onSubmit={handleTwoFactorSubmit}>
+              <div className="rounded-2xl bg-slate-50/80 p-4 text-sm text-slate-600 dark:bg-slate-900/40 dark:text-slate-200">
+                Vui lòng nhập mã xác thực 6 chữ số từ ứng dụng 2FA để hoàn tất đăng nhập.
+              </div>
+              <div>
+                <label htmlFor="twoFactorCode">Mã xác thực</label>
+                <input
+                  id="twoFactorCode"
+                  type="text"
+                  inputMode="numeric"
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value)}
+                  placeholder="123456"
+                  required
+                />
+              </div>
+              {twoFactorError && <p className="error-text text-center">{twoFactorError}</p>}
+              <button className="button w-full" type="submit">
+                Xác thực & tiếp tục
+              </button>
+              <button
+                className="button--ghost w-full"
+                type="button"
+                onClick={() => {
+                  setAwaitingTwoFactor(false);
+                  setTwoFactorCode('');
                 }}
-                placeholder="name@email.com"
-                required
-              />
-              {fieldErrors.email && <p className="error-text">{fieldErrors.email}</p>}
-            </div>
-            <div>
-              <label htmlFor="password">Mật khẩu</label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (fieldErrors.password) {
-                    setFieldErrors((prev) => ({ ...prev, password: '' }));
-                  }
-                }}
-                placeholder="••••••••"
-                required
-              />
-              {fieldErrors.password && <p className="error-text">{fieldErrors.password}</p>}
-            </div>
-            <button className="button w-full" type="submit">
-              Đăng nhập
-            </button>
-          </form>
+              >
+                Trở về đăng nhập
+              </button>
+            </form>
+          ) : (
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div>
+                <label htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (fieldErrors.email) {
+                      setFieldErrors((prev) => ({ ...prev, email: '' }));
+                    }
+                  }}
+                  placeholder="name@email.com"
+                  required
+                />
+                {fieldErrors.email && <p className="error-text">{fieldErrors.email}</p>}
+              </div>
+              <div>
+                <label htmlFor="password">Mật khẩu</label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (fieldErrors.password) {
+                      setFieldErrors((prev) => ({ ...prev, password: '' }));
+                    }
+                  }}
+                  placeholder="••••••••"
+                  required
+                />
+                {fieldErrors.password && <p className="error-text">{fieldErrors.password}</p>}
+              </div>
+              <button className="button w-full" type="submit">
+                Đăng nhập
+              </button>
+            </form>
+          )}
           <p className="text-center text-sm text-slate-500 dark:text-slate-300">
             Chưa có tài khoản?{' '}
             <Link className="font-semibold text-brand hover:text-brand-dark" to="/register">

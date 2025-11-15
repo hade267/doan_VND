@@ -43,5 +43,16 @@ router.patch(
 );
 
 router.get('/stats', adminController.getStats);
+router.get(
+  '/audit-logs',
+  [
+    query('page').optional().isInt({ min: 1 }),
+    query('limit').optional().isInt({ min: 1, max: 200 }),
+    query('userId').optional().isUUID(),
+    query('action').optional().isLength({ min: 2, max: 120 }),
+  ],
+  validate,
+  adminController.listAuditLogs,
+);
 
 module.exports = router;

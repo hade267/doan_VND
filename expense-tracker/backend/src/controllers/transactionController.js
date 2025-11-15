@@ -2,6 +2,7 @@ const { Transaction, Category, NlpLog } = require('../models');
 const { Op } = require('sequelize');
 const { getBudgetAlerts } = require('../utils/budget');
 const { parseNaturalLanguage } = require('../utils/nlp');
+const { logAuditEvent } = require('../services/auditService');
 
 const isNlpLoggingEnabled = process.env.NODE_ENV !== 'production';
 const logNlpEvent = (payload) =>
@@ -44,6 +45,13 @@ const transactionController = {
               transactionDate: transaction_date,
             })
           : [];
+
+      await logAuditEvent(req, userId, 'transaction_create', {
+        transactionId: newTransaction.id,
+        amount,
+        type,
+        via: 'manual',
+      });
 
       res.status(201).json({ transaction: newTransaction, budgetAlerts });
     } catch (error) {
@@ -153,6 +161,12 @@ const transactionController = {
           userId,
           transactionId: transaction.id,
           parsed,
+        });
+        await logAuditEvent(req, userId, 'transaction_create', {
+          transactionId: transaction.id,
+          amount: transaction.amount,
+          type: transaction.type,
+          via: 'nlp',
         });
         res.status(201).json({ transaction, budgetAlerts });
     } catch (error) {

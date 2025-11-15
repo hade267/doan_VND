@@ -6,6 +6,7 @@ const Budget = require('./budget');
 const DefaultCategory = require('./defaultCategory');
 const NlpLog = require('./nlpLog');
 const UserSession = require('./userSession');
+const AuditLog = require('./auditLog');
 
 // Định nghĩa các mối quan hệ (associations)
 
@@ -84,6 +85,11 @@ UserSession.belongsTo(User, {
   as: 'user',
 });
 
+AuditLog.belongsTo(User, {
+  foreignKey: 'user_id',
+  as: 'user',
+});
+
 // Sync database models
 const syncModels = async () => {
   try {
@@ -108,5 +114,6 @@ module.exports = {
   DefaultCategory,
   NlpLog,
   UserSession,
+  AuditLog,
   syncModels,
 };

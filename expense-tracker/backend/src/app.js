@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const { rateLimit } = require('express-rate-limit');
 const { verifyToken } = require('./utils/jwt');
 const buildCspDirectives = require('./config/csp');
+const { verifyCsrfToken } = require('./middleware/csrfMiddleware');
 
 const errorHandler = require('./middleware/errorMiddleware');
 
@@ -57,6 +58,7 @@ app.use((req, res, next) => {
 });
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(verifyCsrfToken);
 
 const getAccessTokenFromRequest = (req) => {
   const authHeader = req.headers.authorization;
@@ -125,6 +127,7 @@ const budgetRoutes = require('./routes/budgetRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const nlpRoutes = require('./routes/nlpRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const securityRoutes = require('./routes/securityRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
@@ -133,6 +136,7 @@ app.use('/api/budgets', budgetRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/nlp', nlpRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/security', securityRoutes);
 
 // SỬ DỤNG MIDDLEWARE XỬ LÝ LỖI (Phải ở CUỐI CÙNG)
 // Sau tất cả các app.use() và routes

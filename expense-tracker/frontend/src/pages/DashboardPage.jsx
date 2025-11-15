@@ -127,28 +127,28 @@ const DashboardPage = () => {
 
   const metricCardsData = [
     {
-      key: 'income',
+      id: 'income',
       title: 'Thu nhập',
       value: formatCurrency(summary?.totalIncome),
       hint: 'Tổng thu tháng này',
       icon: TrendUpIcon,
     },
     {
-      key: 'expense',
+      id: 'expense',
       title: 'Chi tiêu',
       value: formatCurrency(summary?.totalExpense),
       hint: 'Chi tiêu đã ghi nhận',
       icon: TrendDownIcon,
     },
     {
-      key: 'balance',
+      id: 'balance',
       title: 'Cân bằng',
       value: formatCurrency(summary?.balance),
       hint: 'Sau thu/chi',
       icon: WalletIcon,
     },
     {
-      key: 'transactions',
+      id: 'transactions',
       title: 'Giao dịch gần đây',
       value: `${transactions.length || 0} mục`,
       hint: '5 bản ghi mới nhất',
@@ -167,7 +167,9 @@ const DashboardPage = () => {
       ));
     }
 
-    return metricCardsData.map((metric) => <MetricCard key={metric.key} {...metric} />);
+    return metricCardsData.map(({ id, ...rest }) => (
+      <MetricCard key={id} {...rest} />
+    ));
   };
 
   const quickStats = [
