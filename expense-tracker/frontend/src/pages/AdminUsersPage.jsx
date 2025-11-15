@@ -46,10 +46,22 @@ const AdminUsersPage = () => {
       setNlpLoading(true);
       try {
         const data = await fetchNlpConfig();
+        const stringifyAmountKeywords = () => {
+          const items = data?.amountKeywords || [];
+          return items
+            .map((entry) =>
+              typeof entry === 'string'
+                ? entry
+                : `${entry.keyword || ''}:${entry.multiplier ?? ''}`.trim().replace(/:+$/, ''),
+            )
+            .filter(Boolean)
+            .join(', ');
+        };
+
         setNlpForm({
           income: (data?.incomeKeywords || []).join(', '),
           expense: (data?.expenseKeywords || []).join(', '),
-          amount: (data?.amountKeywords || []).join(', '),
+          amount: stringifyAmountKeywords(),
           categories: JSON.stringify(data?.categories || [], null, 2),
         });
         setNlpStatus('');
@@ -91,10 +103,25 @@ const AdminUsersPage = () => {
         return null;
       }
     }
+    const parseAmountKeywords = () => {
+      const tokens = parseKeywordInput(nlpForm.amount);
+      return tokens.map((token) => {
+        const [keywordRaw, multiplierRaw] = token.split(':').map((part) => part.trim());
+        if (!keywordRaw) {
+          return null;
+        }
+        const multiplier = Number(multiplierRaw);
+        if (Number.isFinite(multiplier) && multiplier > 0) {
+          return { keyword: keywordRaw, multiplier };
+        }
+        return keywordRaw;
+      }).filter(Boolean);
+    };
+
     return {
       incomeKeywords: parseKeywordInput(nlpForm.income),
       expenseKeywords: parseKeywordInput(nlpForm.expense),
-      amountKeywords: parseKeywordInput(nlpForm.amount),
+      amountKeywords: parseAmountKeywords(),
       categories: categoriesPayload,
     };
   };

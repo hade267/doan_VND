@@ -55,7 +55,7 @@ const DEFAULT_AMOUNT_MULTIPLIERS = {
   ty: 1_000_000_000,
 };
 
-const MAX_UNIT_KEYWORD_LENGTH = 12;
+const MAX_UNIT_KEYWORD_LENGTH = 32;
 
 const buildAmountUnitMap = (extraKeywords = []) => {
   const unitMap = { ...DEFAULT_AMOUNT_MULTIPLIERS };
@@ -91,10 +91,10 @@ const buildAmountRegexes = (unitMap) => {
   const unitPattern = unitKeys.length ? unitKeys.join('|') : 'vnd';
   const optionalUnitGroup = `(${unitPattern})?`;
   const regexes = [
-    new RegExp(`(?:khoang|gan|hon)?\s*(\d+(?:[.,]\d+)?)(?:\s*)${optionalUnitGroup}`, 'gi'),
-    new RegExp(`(\d{1,3}(?:[.,]\d{3})+)(?:\s*)${optionalUnitGroup}`, 'gi'),
+    new RegExp(`(?:khoang|gan|hon)?\\s*(\\d+(?:[.,]\\d+)?)(?:\\s*)${optionalUnitGroup}`, 'gi'),
+    new RegExp(`(\\d{1,3}(?:[.,]\\d{3})+)(?:\\s*)${optionalUnitGroup}`, 'gi'),
   ];
-  regexes.push(new RegExp(`(\d+(?:[.,]\d+)?)(?=\s*(${unitPattern}))`, 'gi'));
+  regexes.push(new RegExp(`(\\d+(?:[.,]\\d+)?)(?=\\s*(${unitPattern}))`, 'gi'));
   return regexes;
 };
 

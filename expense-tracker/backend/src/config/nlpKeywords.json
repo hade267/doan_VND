@@ -22,17 +22,22 @@
     "no"
   ],
   "amountKeywords": [
-    "vnd",
-    "dong",
-    "d",
-    "k",
-    "nghin",
-    "ngan",
-    "tr",
-    "trieu",
-    "m",
-    "ty",
-    "van"
+    { "keyword": "vnd", "multiplier": 1 },
+    { "keyword": "dong", "multiplier": 1 },
+    { "keyword": "d", "multiplier": 1 },
+    { "keyword": "ngan dong", "multiplier": 1000 },
+    { "keyword": "nghin", "multiplier": 1000 },
+    { "keyword": "ngan", "multiplier": 1000 },
+    { "keyword": "k", "multiplier": 1000 },
+    { "keyword": "tram nghin", "multiplier": 100000 },
+    { "keyword": "trieu", "multiplier": 1000000 },
+    { "keyword": "tr", "multiplier": 1000000 },
+    { "keyword": "m", "multiplier": 1000000 },
+    { "keyword": "chuc trieu", "multiplier": 10000000 },
+    { "keyword": "tram trieu", "multiplier": 100000000 },
+    { "keyword": "ty", "multiplier": 1000000000 },
+    { "keyword": "ti", "multiplier": 1000000000 },
+    { "keyword": "van", "multiplier": 10000 }
   ],
   "categories": [
     {
