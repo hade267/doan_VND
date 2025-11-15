@@ -55,6 +55,8 @@ const DEFAULT_AMOUNT_MULTIPLIERS = {
   ty: 1_000_000_000,
 };
 
+const MAX_UNIT_KEYWORD_LENGTH = 12;
+
 const buildAmountUnitMap = (extraKeywords = []) => {
   const unitMap = { ...DEFAULT_AMOUNT_MULTIPLIERS };
   extraKeywords.forEach((entry) => {
@@ -63,14 +65,14 @@ const buildAmountUnitMap = (extraKeywords = []) => {
     }
     if (typeof entry === 'string') {
       const key = sanitizeUnitKeyword(entry);
-      if (key && !unitMap[key]) {
+      if (key && key.length <= MAX_UNIT_KEYWORD_LENGTH && !unitMap[key]) {
         unitMap[key] = 1;
       }
       return;
     }
     if (typeof entry === 'object' && entry.keyword) {
       const key = sanitizeUnitKeyword(entry.keyword);
-      if (!key) {
+      if (!key || key.length > MAX_UNIT_KEYWORD_LENGTH) {
         return;
       }
       const multiplier = Number(entry.multiplier);
