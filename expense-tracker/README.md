@@ -302,6 +302,9 @@ psql -U postgres -f database.sql
 ```bash
 cd backend
 cp .env.example .env
+# Khi deploy production:
+# cp .env.production.example .env.production
+# CORS_ORIGINS phải liệt kê chính xác domain frontend (HTTPS), ví dụ: https://app.example.com
 ```
 
 #### `.env`
@@ -314,6 +317,7 @@ NODE_ENV=development
 
 ```bash
 npm install
+npm run migrate
 npm run dev
 ```
 
@@ -402,3 +406,29 @@ npm test
 --- 
 
 **Bắt đầu code nào!**  
+
+
+## Qu�n l� Database & quy?n h?n
+
+- **Migrations**: sau khi c?p nh?t models, t?o migration (`npx sequelize-cli migration:generate --name your-change`) v� ch?y `npm run migrate`. `DB_AUTO_SYNC` m?c ??nh ?? `false` ?? tr�nh thay ??i schema kh�ng ki?m so�t.
+- **Postgres least privilege**: thay v? d�ng superuser `postgres`, h?y t?o role rieng cho ?ng d?ng:
+```sql
+CREATE ROLE expense_app LOGIN PASSWORD 'super-strong-password';
+GRANT CONNECT ON DATABASE expense_tracker TO expense_app;
+GRANT USAGE ON SCHEMA public TO expense_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO expense_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO expense_app;
+```
+Sau khi t?o role, c?p nh?t `DATABASE_URL` trong `.env` s? d?ng user m?i.
+
+---
+
+## Dependency & production build checklist
+
+- Run `npm run audit` inside both `backend/` and `frontend/` before each release to surface `npm audit` issues quickly.
+- Dependabot is enabled via `.github/dependabot.yml` (two jobs for `/backend` and `/frontend`) to raise upgrade PRs automatically.
+- Production builds:
+  - Backend: `npm run start:prod` sets `NODE_ENV=production`, uses the Pino logger and respects `NLP_LOGGING_ENABLED=false`.
+  - Frontend: `npm run build:prod` (Vite) emits a minified bundle; remember to provide `.env.production` with `VITE_API_URL`, `VITE_SENTRY_DSN`, etc.
+- Disable NLP logging in production by setting `NLP_LOGGING_ENABLED=false` in the server env when sensitive data must stay off the log stream.

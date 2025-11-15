@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react';
+import DOMPurify from 'dompurify';
 import { fetchLogs, updateLog, reapplyLog } from '../services/nlpService';
 
 const statusOptions = [
@@ -8,6 +9,7 @@ const statusOptions = [
 ];
 
 const formatDateTime = (value) => (value ? new Date(value).toLocaleString('vi-VN') : '');
+const sanitizeText = (value = '') => DOMPurify.sanitize(String(value ?? ''));
 
 const Metric = ({ label, value, accent }) => (
   <div className="rounded-2xl border border-white/15 bg-white/10 p-4 text-white">
@@ -32,12 +34,12 @@ const TimelineCard = ({ log, onOpen, onToggle, onReapply }) => (
           Engine: {log.engine}
         </span>
       </div>
-      <p className="text-sm font-medium text-slate-900 dark:text-white">{log.input_text}</p>
+      <p className="text-sm font-medium text-slate-900 dark:text-white">{sanitizeText(log.input_text)}</p>
       <div className="grid gap-3 md:grid-cols-2">
         <div>
           <p className="eyebrow">Kết quả phân tích</p>
           <pre className="max-h-48 overflow-auto rounded-2xl bg-slate-950/90 p-3 text-xs text-white dark:bg-slate-900">
-            {JSON.stringify(log.parsed_json, null, 2)}
+            {sanitizeText(JSON.stringify(log.parsed_json, null, 2))}
           </pre>
         </div>
         <div className="space-y-3">
@@ -45,7 +47,7 @@ const TimelineCard = ({ log, onOpen, onToggle, onReapply }) => (
           <div className="rounded-2xl border border-slate-100/80 bg-white/60 p-3 text-sm dark:border-slate-800 dark:bg-slate-900/40">
             {log.corrections ? (
               <pre className="text-xs text-slate-700 dark:text-slate-200">
-                {JSON.stringify(log.corrections, null, 2)}
+                {sanitizeText(JSON.stringify(log.corrections, null, 2))}
               </pre>
             ) : (
               <span className="text-slate-500">Chưa có</span>
@@ -55,7 +57,7 @@ const TimelineCard = ({ log, onOpen, onToggle, onReapply }) => (
             <div>
               <p className="eyebrow">Feedback</p>
               <p className="rounded-xl bg-slate-100/80 p-2 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                {log.feedback}
+                {sanitizeText(log.feedback)}
               </p>
             </div>
           )}

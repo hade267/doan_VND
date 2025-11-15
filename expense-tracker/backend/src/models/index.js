@@ -5,6 +5,8 @@ const Transaction = require('./transaction');
 const Budget = require('./budget');
 const DefaultCategory = require('./defaultCategory');
 const NlpLog = require('./nlpLog');
+const RefreshToken = require('./refreshToken');
+const AuditLog = require('./auditLog');
 
 // Định nghĩa các mối quan hệ (associations)
 
@@ -72,19 +74,39 @@ NlpLog.belongsTo(Transaction, {
   foreignKey: 'transaction_id',
 });
 
+// User -> RefreshToken (One-to-Many)
+User.hasMany(RefreshToken, {
+  foreignKey: 'user_id',
+  onDelete: 'CASCADE',
+});
+RefreshToken.belongsTo(User, {
+  foreignKey: 'user_id',
+});
+
+// User -> AuditLog
+User.hasMany(AuditLog, {
+  foreignKey: 'user_id',
+  onDelete: 'CASCADE',
+});
+AuditLog.belongsTo(User, {
+  foreignKey: 'user_id',
+});
+
 // Sync database models
 const syncModels = async () => {
   try {
-    const shouldAlter =
-      process.env.DB_AUTO_SYNC === 'true' ||
-      (!process.env.DB_AUTO_SYNC && process.env.NODE_ENV === 'development');
-    await sequelize.sync({ force: false, alter: shouldAlter });
-    console.log('✅ Database models synchronized successfully.');
+    if (process.env.DB_AUTO_SYNC !== 'true') {
+      console.log('[DB] Auto sync disabled. Run migrations instead.');
+      return;
+    }
+    await sequelize.sync({ force: false, alter: true });
+    console.log('?o. Database models synchronized successfully.');
   } catch (error) {
-    console.error('❌ Error synchronizing database models:', error);
+    console.error('??O Error synchronizing database models:', error);
     throw error;
   }
 };
+
 
 // Xuất tất cả models và sequelize instance
 module.exports = {
@@ -95,5 +117,9 @@ module.exports = {
   Budget,
   DefaultCategory,
   NlpLog,
+  RefreshToken,
+  AuditLog,
   syncModels,
 };
+
+

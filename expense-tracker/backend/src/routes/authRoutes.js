@@ -11,4 +11,12 @@ router.post('/register', registerRules(), validate, authController.register);
 // Route POST /api/auth/login
 router.post('/login', loginRules(), validate, authController.login);
 
+router.post('/verify-email', authController.verifyEmail);
+
+// Refresh token
+router.post('/refresh', authController.refreshToken);
+
+// Logout
+router.post('/logout', authController.logout);
+
 module.exports = router;

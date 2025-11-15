@@ -34,9 +34,27 @@ const LoginPage = () => {
     return Object.keys(errors).length === 0;
   };
 
+  const applyServerErrors = (error) => {
+    const serverFieldErrors = error?.response?.data?.errors;
+    if (Array.isArray(serverFieldErrors)) {
+      const updates = {};
+      serverFieldErrors.forEach((item) => {
+        if (item?.param) {
+          updates[item.param] = item.msg;
+        }
+      });
+      setFieldErrors((prev) => ({ ...prev, ...updates }));
+    }
+    const field = error?.response?.data?.field;
+    if (field && error?.response?.data?.message) {
+      setFieldErrors((prev) => ({ ...prev, [field]: error.response.data.message }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
     if (!validateForm()) {
       return;
     }
@@ -44,6 +62,7 @@ const LoginPage = () => {
       await login(email.trim(), password);
       navigate('/dashboard');
     } catch (err) {
+      applyServerErrors(err);
       setError(err.response?.data?.message || 'Đăng nhập thất bại');
     }
   };

@@ -44,9 +44,31 @@ const RegisterPage = () => {
     return Object.keys(errors).length === 0;
   };
 
+  const applyServerErrors = (error) => {
+    const serverFieldErrors = error?.response?.data?.errors;
+    const normalizeField = (field) => {
+      if (field === 'full_name') return 'fullName';
+      return field;
+    };
+    if (Array.isArray(serverFieldErrors)) {
+      const updates = {};
+      serverFieldErrors.forEach((item) => {
+        if (item?.param) {
+          updates[normalizeField(item.param)] = item.msg;
+        }
+      });
+      setFieldErrors((prev) => ({ ...prev, ...updates }));
+    }
+    const field = error?.response?.data?.field;
+    if (field && error?.response?.data?.message) {
+      setFieldErrors((prev) => ({ ...prev, [normalizeField(field)]: error.response.data.message }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
     if (!validateForm()) {
       return;
     }
@@ -54,6 +76,7 @@ const RegisterPage = () => {
       await register(username.trim(), email.trim(), password, fullName.trim());
       navigate('/dashboard');
     } catch (err) {
+      applyServerErrors(err);
       setError(err.response?.data?.message || 'Đăng ký thất bại');
     }
   };

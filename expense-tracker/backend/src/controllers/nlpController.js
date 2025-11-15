@@ -1,11 +1,12 @@
 const dayjs = require('dayjs');
 const { Op } = require('sequelize');
 const { NlpLog, Category, Transaction } = require('../models');
+const { logAudit } = require('../utils/auditLogger');
 const { getNlpConfig, saveNlpConfig } = require('../utils/nlpConfig');
 const { parseNaturalLanguage } = require('../utils/nlp');
 const { buildSummary } = require('./reportController');
 
-const isNlpLoggingEnabled = process.env.NODE_ENV !== 'production';
+const isNlpLoggingEnabled = process.env.NLP_LOGGING_ENABLED !== 'false';
 const respondLogsDisabled = (res) =>
   res.status(404).json({ message: 'NLP logging features are disabled in production.' });
 
@@ -247,6 +248,15 @@ const nlpController = {
       }
 
       saveNlpConfig(updated);
+      await logAudit({
+        userId: req.user.id,
+        action: 'nlp:update_config',
+        entity: 'nlp_config',
+        metadata: {
+          previous: current,
+          updated,
+        },
+      });
       res.json(updated);
     } catch (error) {
       res.status(500).json({ message: 'Unable to update NLP config.', error: error.message });

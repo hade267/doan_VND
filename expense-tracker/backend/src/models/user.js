@@ -46,6 +46,23 @@ User.init({
     type: DataTypes.BOOLEAN,
     defaultValue: true,
   },
+  email_verified: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  verification_token: {
+    type: DataTypes.STRING(128),
+  },
+  verification_token_expires: {
+    type: DataTypes.DATE,
+  },
+  failed_login_attempts: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  lockout_until: {
+    type: DataTypes.DATE,
+  },
 }, {
   sequelize,
   modelName: 'User',

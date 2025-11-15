@@ -6,13 +6,18 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:prod": "cross-env NODE_ENV=production vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "audit": "npm audit"
   },
   "dependencies": {
+    "@sentry/react": "^10.25.0",
+    "@sentry/tracing": "^7.120.4",
     "axios": "^1.13.2",
     "chart.js": "^4.4.6",
+    "dompurify": "^3.3.0",
     "express-async-errors": "^3.1.1",
     "react": "^19.2.0",
     "react-chartjs-2": "^5.2.0",
@@ -37,6 +42,7 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.14",
     "vite": "^7.2.2",
-    "vitest": "^4.0.9"
+    "vitest": "^4.0.9",
+    "cross-env": "^10.1.0"
   }
 }

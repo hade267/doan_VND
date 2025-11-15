@@ -1,5 +1,6 @@
 const { Op, literal } = require('sequelize');
 const { User, Transaction } = require('../models');
+const { logAudit } = require('../utils/auditLogger');
 
 const buildUserWhere = ({ q, role, status }) => {
   const where = {};
@@ -107,6 +108,16 @@ const adminController = {
     }
 
     await target.update(payload);
+    await logAudit({
+      userId: req.user.id,
+      action: 'admin:update_user',
+      entity: 'user',
+      entityId: target.id,
+      metadata: {
+        changes: payload,
+        targetUser: target.id,
+      },
+    });
     const updated = target.toJSON();
     delete updated.password_hash;
     res.json(updated);

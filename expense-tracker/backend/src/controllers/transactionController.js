@@ -3,7 +3,7 @@ const { Op } = require('sequelize');
 const { getBudgetAlerts } = require('../utils/budget');
 const { parseNaturalLanguage } = require('../utils/nlp');
 
-const isNlpLoggingEnabled = process.env.NODE_ENV !== 'production';
+const isNlpLoggingEnabled = process.env.NLP_LOGGING_ENABLED !== 'false';
 const logNlpEvent = (payload) =>
   isNlpLoggingEnabled ? NlpLog.create(payload).catch(() => {}) : Promise.resolve();
 
