@@ -1,23 +1,24 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-
-// Import actual page components (we will create these next)
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
-import NlpLogsPage from './pages/NlpLogsPage';
-import SettingsPage from './pages/SettingsPage';
-import AdminUsersPage from './pages/AdminUsersPage';
-import TransactionsPage from './pages/TransactionsPage';
 import AppLayout from './components/AppLayout';
+
+const HomePage = lazy(() => import('./pages/HomePage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const NlpLogsPage = lazy(() => import('./pages/NlpLogsPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
+const TransactionsPage = lazy(() => import('./pages/TransactionsPage'));
 
 const enableNlpLogs = import.meta.env.MODE !== 'production';
 
 const NotFoundPage = () => <h1>404 Not Found</h1>;
+const PageLoader = () => (
+  <div className="flex min-h-[200px] items-center justify-center text-gray-500">Loading...</div>
+);
 
-// A wrapper for protected routes
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? children : <Navigate to="/login" />;
@@ -41,9 +42,11 @@ function AppRoutes() {
       </AppLayout>
     </ProtectedRoute>
   );
+
   return (
-     <Routes>
-         <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <HomePage />} />
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={withLayout(DashboardPage)} />
@@ -73,7 +76,8 @@ function AppRoutes() {
         <Route path="/settings" element={withLayout(SettingsPage)} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
-  )
+    </Suspense>
+  );
 }
 
 function App() {

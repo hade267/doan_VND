@@ -36,6 +36,15 @@ export default defineConfig(({ mode }) => {
       reportCompressedSize: false,
       minify: 'esbuild',
       cssCodeSplit: true,
+      chunkSizeWarningLimit: Number(env.VITE_CHUNK_WARNING_LIMIT || 700),
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            charts: ['chart.js', 'react-chartjs-2'],
+          },
+        },
+      },
     },
     esbuild: {
       legalComments: 'none',
